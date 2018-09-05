@@ -89,9 +89,14 @@ UniValue getpoolinfo(const UniValue& params, bool fHelp)
 }
 
 typedef std::pair<std::string, int> WINPAIR;
-template<typename T> bool cmp_by_value(const T& lhs, const T& rhs)
+bool cmp_by_value(const WINPAIR& lhs, const WINPAIR& rhs)
 {
 	return lhs.second == rhs.second ? lhs.first < rhs.first : lhs.second > rhs.second;
+}
+typedef std::pair<std::string, std::pair<int64_t, int>> ACTPAIR;
+bool cmp1_by_value(const ACTPAIR& lhs, const ACTPAIR& rhs)
+{
+	return lhs.second.first == rhs.second.first ? lhs.first < rhs.first : lhs.second.first > rhs.second.first;
 }
 UniValue masternode(const UniValue& params, bool fHelp)
 {
@@ -507,9 +512,17 @@ UniValue masternode(const UniValue& params, bool fHelp)
 
     if (strCommand == "lives")
     {
+        int nHeight;
+        {
+            LOCK(cs_main);
+            CBlockIndex* pindex = chainActive.Tip();
+            if(!pindex) return NullUniValue;
+
+            nHeight = pindex->nHeight;
+        }
         UniValue obj(UniValue::VOBJ);
         std::map<std::string, int> mapStatus;
-        std::map<CMasternode, int64_t> mapActive;
+        std::map<ACTPAIR> mapActive;
         for(int i = 57600; i < nHeight + 10; i++)
         {
             std::string strPayment = GetRequiredPaymentsString(i, false);
@@ -523,13 +536,13 @@ UniValue masternode(const UniValue& params, bool fHelp)
         {
             std::string strOutpoint = mn.vin.prevout.ToStringShort();
             int64_t nactive = (int64_t)(mn.lastPing.sigTime - mn.sigTime);
-            mapActive.insert(std::pair<CMasternode, int64_t>(strOutpoint, nactive));
+            mapActive.insert(std::make_pair(strOutpoint, std::make_pair(nactive, mapStatus[CBitcoinAddress(mn.GetPayeeDestination()).ToString()])));
         }
-        std::vector<std::pair<CMasternode, int64_t>>vecActive(mapActive.begin(), mapActive.end());
-        std::sort(vecActive.begin(), vecActive.end(), cmp_by_value);
-        for(auto& mn, vecActive)
+        std::vector<ACTPAIR>vecActive(mapActive.begin(), mapActive.end());
+        std::sort(vecActive.begin(), vecActive.end(), cmp1_by_value);
+        for(auto& actinfo, vecActive)
         {
-            obj.push_back(Pair(mn.first, strprintf("%ld +++ %d", mn.second, mapStatus[CBitcoinAddress(mn.GetPayeeDestination()).ToString()])));
+            obj.push_back(Pair(actinfo.first, strprintf("%ld +++ %d", actinfo.second.first, actinfo.second.second)));
         }
         obj.push_back(Pair("Total", vecActive.size()));
         return obj;

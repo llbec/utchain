@@ -522,7 +522,7 @@ UniValue masternode(const UniValue& params, bool fHelp)
         }
         UniValue obj(UniValue::VOBJ);
         std::map<std::string, int> mapStatus;
-        std::map<ACTPAIR> mapActive;
+        std::map<std::string, std::pair<int64_t, int>> mapActive;
         for(int i = 57600; i < nHeight + 10; i++)
         {
             std::string strPayment = GetRequiredPaymentsString(i, false);
@@ -540,7 +540,7 @@ UniValue masternode(const UniValue& params, bool fHelp)
         }
         std::vector<ACTPAIR>vecActive(mapActive.begin(), mapActive.end());
         std::sort(vecActive.begin(), vecActive.end(), cmp1_by_value);
-        for(auto& actinfo, vecActive)
+        for(auto& actinfo : vecActive)
         {
             obj.push_back(Pair(actinfo.first, strprintf("%ld +++ %d", actinfo.second.first, actinfo.second.second)));
         }

@@ -3194,6 +3194,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
         return state.DoS(0, error("ConnectBlock(UT): couldn't find masternode or superblock payments"),
                                 REJECT_INVALID, "bad-cb-payee");
     }
+    mnodeman.ProcessPayee(block.vtx[0], pindex->nHeight);
     // END UT
 
     if (!control.Wait())

@@ -112,7 +112,8 @@ UniValue masternode(const UniValue& params, bool fHelp)
         (strCommand != "start" && strCommand != "start-alias" && strCommand != "start-all" && strCommand != "start-missing" &&
          strCommand != "start-disabled" && strCommand != "list" && strCommand != "list-conf" && strCommand != "count" &&
          strCommand != "debug" && strCommand != "current" && strCommand != "winner" && strCommand != "winners" && strCommand != "genkey" &&
-         strCommand != "connect" && strCommand != "outputs" && strCommand != "status"  && strCommand != "license" && strCommand != "lives"))
+         strCommand != "connect" && strCommand != "outputs" && strCommand != "status"  && strCommand != "license" &&
+         strCommand != "lives" && strCommand != "payeestatus"))
             throw std::runtime_error(
                 "masternode \"command\"... ( \"passphrase\" )\n"
                 "Set of commands to execute masternode related actions\n"
@@ -545,6 +546,55 @@ UniValue masternode(const UniValue& params, bool fHelp)
             obj.push_back(Pair(actinfo.first, strprintf("%ld +++ %d", actinfo.second.first, actinfo.second.second)));
         }
         obj.push_back(Pair("Total", vecActive.size()));
+        return obj;
+    }
+
+    if(strCommand == "payeestatus")
+    {
+        std::string scmd;
+        if (params.size() == 2) {
+            scmd = params[1].get_str();
+            if(scmd == "reset") {
+                int nHeight;
+                {
+                    LOCK(cs_main);
+                    CBlockIndex* pindex = chainActive.Tip();
+                    if(!pindex) return NullUniValue;
+
+                    nHeight = pindex->nHeight;
+                }
+                mnodeman.mapMasternodePayee.clear();
+                for(int i = 57600; i < nHeight; i++)
+                {
+                    CBlock block;
+                    CBlockIndex* pblockindex = chainActive[i];
+                    if(!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
+                        continue;
+                    mnodeman.ProcessPayee(block.vtx[0], i);
+                }
+            }
+        }
+        UniValue obj(UniValue::VOBJ);
+        for(auto mninfo : mnodeman.mapMasternodePayee)
+        {
+            std::ostringstream streamInfo;
+            bool bstart = true;
+            streamInfo << (int64_t)(mninfo.first.lastPing.sigTime - mninfo.first.sigTime) << " " <<
+                        << mninfo.second.size();
+            for(auto n : mninfo.second)
+            {
+                if(bstart) {
+                    streamInfo << "(";
+                    bstart = false;
+                } else {
+                    streamInfo << ", ";
+                }
+                streamInfo << n;
+            }
+            if(!bstart)
+                streamInfo << ")";
+            obj.push_back(Pair(mninfo.first.vin.prevout.ToStringShort(), streamInfo.str()));
+        }
         return obj;
     }
 

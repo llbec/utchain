@@ -579,7 +579,7 @@ UniValue masternode(const UniValue& params, bool fHelp)
         {
             std::ostringstream streamInfo;
             bool bstart = true;
-            streamInfo << (int64_t)(mninfo.first.lastPing.sigTime - mninfo.first.sigTime) << " "
+            streamInfo << std::setw(10) << (int64_t)(mninfo.first.lastPing.sigTime - mninfo.first.sigTime) << " "
                         << mninfo.second.size();
             for(auto n : mninfo.second)
             {

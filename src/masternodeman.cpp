@@ -1747,14 +1747,20 @@ void CMasternodeMan::UpdatedBlockTip(const CBlockIndex *pindex)
 
 void CMasternodeMan::ProcessPayee(const CTransaction & tx, int nHeight)
 {
-    CAmount nMasternodePayment = GetMasternodePayment(nBlockHeight);
+    CAmount nMasternodePayment = GetMasternodePayment(nHeight);
     
     BOOST_FOREACH(CTxOut txout, tx.vout)
     {
         if(nMasternodePayment == txout.nValue) {
             CMasternode * ptr = Find(txout.scriptPubKey);
             if(ptr != NULL) {
-                mapMasternodePayee[*ptr].insert(nHeight);
+				if(mapMasternodePayee.count(*ptr) == 0) {
+					std::vector<int> vecH;
+					vecH.push_back(nHeight);
+					mapMasternodePayee.insert(std::make_pair(*ptr, vecH));
+				} else {
+                	mapMasternodePayee[*ptr].push_back(nHeight);
+				}
             }
             return;
         }

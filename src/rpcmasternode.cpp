@@ -89,7 +89,7 @@ UniValue getpoolinfo(const UniValue& params, bool fHelp)
 }
 
 typedef std::pair<std::string, int> WINPAIR;
-bool cmp_by_value(const WINPAIR& lhs, const WINPAIR& rhs)
+template<typename T> bool cmp_by_value(const T& lhs, const T& rhs)
 {
 	return lhs.second == rhs.second ? lhs.first < rhs.first : lhs.second > rhs.second;
 }
@@ -107,7 +107,7 @@ UniValue masternode(const UniValue& params, bool fHelp)
         (strCommand != "start" && strCommand != "start-alias" && strCommand != "start-all" && strCommand != "start-missing" &&
          strCommand != "start-disabled" && strCommand != "list" && strCommand != "list-conf" && strCommand != "count" &&
          strCommand != "debug" && strCommand != "current" && strCommand != "winner" && strCommand != "winners" && strCommand != "genkey" &&
-         strCommand != "connect" && strCommand != "outputs" && strCommand != "status"  && strCommand != "license"))
+         strCommand != "connect" && strCommand != "outputs" && strCommand != "status"  && strCommand != "license" && strCommand != "lives"))
             throw std::runtime_error(
                 "masternode \"command\"... ( \"passphrase\" )\n"
                 "Set of commands to execute masternode related actions\n"
@@ -503,6 +503,36 @@ UniValue masternode(const UniValue& params, bool fHelp)
         }
 
         return mnObj;
+    }
+
+    if (strCommand == "lives")
+    {
+        UniValue obj(UniValue::VOBJ);
+        std::map<std::string, int> mapStatus;
+        std::map<CMasternode, int64_t> mapActive;
+        for(int i = 57600; i < nHeight + 10; i++)
+        {
+            std::string strPayment = GetRequiredPaymentsString(i, false);
+            if(mapStatus.count(strPayment) == 0)
+                mapStatus.insert(std::pair<std::string, int>(strPayment, 1));
+            else
+                mapStatus[strPayment]++;
+        }
+        std::vector<CMasternode> vMasternodes = mnodeman.GetFullMasternodeVector();
+        BOOST_FOREACH(CMasternode& mn, vMasternodes)
+        {
+            std::string strOutpoint = mn.vin.prevout.ToStringShort();
+            int64_t nactive = (int64_t)(mn.lastPing.sigTime - mn.sigTime);
+            mapActive.insert(std::pair<CMasternode, int64_t>(strOutpoint, nactive));
+        }
+        std::vector<std::pair<CMasternode, int64_t>>vecActive(mapActive.begin(), mapActive.end());
+        std::sort(vecActive.begin(), vecActive.end(), cmp_by_value);
+        for(auto& mn, vecActive)
+        {
+            obj.push_back(Pair(mn.first, strprintf("%ld +++ %d", mn.second, mapStatus[CBitcoinAddress(mn.GetPayeeDestination()).ToString()])));
+        }
+        obj.push_back(Pair("Total", vecActive.size()));
+        return obj;
     }
 
     return NullUniValue;

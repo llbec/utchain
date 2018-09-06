@@ -98,6 +98,15 @@ bool cmp1_by_value(const ACTPAIR& lhs, const ACTPAIR& rhs)
 {
 	return lhs.second.first == rhs.second.first ? lhs.first < rhs.first : lhs.second.first > rhs.second.first;
 }
+typedef std::pair<CMasternode, std::vector<int>> PAYPAIR;
+bool cmp_by_size(const PAYPAIR& lhs, const PAYPAIR& rhs)
+{
+    return lhs.second.size() == rhs.second.size() ? (lhs.second.size() == 0 ?  false : lhs.second.back() > rhs.second.back()) : lhs.second.size() > rhs.second.size();
+}
+bool cmp_by_back(const PAYPAIR& lhs, const PAYPAIR& rhs)
+{
+    return (lhs.second.size() == 0 || rhs.second.size() == 0) ? lhs.second.size() > rhs.second.size() : lhs.second.back() > rhs.second.back();
+}
 UniValue masternode(const UniValue& params, bool fHelp)
 {
     std::string strCommand;
@@ -552,6 +561,7 @@ UniValue masternode(const UniValue& params, bool fHelp)
     if(strCommand == "payeestatus")
     {
         std::string scmd;
+        bool bBack = false;
         if (params.size() == 2) {
             scmd = params[1].get_str();
             if(scmd == "reset") {
@@ -572,10 +582,14 @@ UniValue masternode(const UniValue& params, bool fHelp)
                         continue;
                     mnodeman.ProcessPayee(block.vtx[0], i);
                 }
+            } else if(scmd == "block") {
+                bBack = true;;
             }
         }
         UniValue obj(UniValue::VOBJ);
-        for(auto mninfo : mnodeman.mapMasternodePayee)
+        std::vector<PAYPAIR> vecPayee(mnodeman.mapMasternodePayee.begin(), mnodeman.mapMasternodePayee.end());
+        bBack ? std::sort(vecPayee.begin(), vecPayee.end(), cmp_by_back) : std::sort(vecPayee.begin(), vecPayee.end(), cmp_by_size);
+        for(auto mninfo : vecPayee)
         {
             std::ostringstream streamInfo;
             bool bstart = true;

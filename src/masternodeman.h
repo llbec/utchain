@@ -366,7 +366,7 @@ public:
 
     void UpdatedBlockTip(const CBlockIndex *pindex);
 
-    void ProcessPayee(const CTransaction& tx, int nHeight);
+    void ProcessPayee(const CTransaction& tx, int nHeight, bool bAdd = true);
 
     /**
      * Called to notify CGovernanceManager that the masternode index has been updated.

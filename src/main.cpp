@@ -2512,6 +2512,8 @@ bool DisconnectBlock(const CBlock& block, CValidationState& state, const CBlockI
     //trieCache.setBestBlock(pindex->pprev->GetBlockHash());
     //assert(trieCache.getMerkleHash() == pindex->pprev->hashClaimTrie);
 
+    mnodeman.ProcessPayee(block.vtx[0], pindex->nHeight, false);
+
     if (pfClean) {
         *pfClean = fClean;
         return true;

@@ -1745,7 +1745,7 @@ void CMasternodeMan::UpdatedBlockTip(const CBlockIndex *pindex)
     }
 }
 
-void CMasternodeMan::ProcessPayee(const CTransaction & tx, int nHeight)
+void CMasternodeMan::ProcessPayee(const CTransaction & tx, int nHeight, bool bAdd)
 {
     CAmount nMasternodePayment = GetMasternodePayment(nHeight);
     
@@ -1759,7 +1759,18 @@ void CMasternodeMan::ProcessPayee(const CTransaction & tx, int nHeight)
 					vecH.push_back(nHeight);
 					mapMasternodePayee.insert(std::make_pair(*ptr, vecH));
 				} else {
-                	mapMasternodePayee[*ptr].push_back(nHeight);
+                    if(bAdd) {
+                	    mapMasternodePayee[*ptr].push_back(nHeight);
+                    } else {
+                        for(std::vector<int>::iterator it = mapMasternodePayee[*ptr].begin(); it != mapMasternodePayee[*ptr].end(); )
+                        {
+                            if(*it == nHeight) {
+                                it = mapMasternodePayee[*ptr].erase(it);
+                            } else {
+                                it++;
+                            }
+                        }
+                   }
 				}
             }
             return;

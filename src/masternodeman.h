@@ -170,7 +170,7 @@ public:
     // keep track of dsq count to prevent masternodes from gaming privsend queue
     int64_t nDsqCount;
     // Keep track of masternode payee
-    std::map<CMasternode, std::vector<int>> mapMasternodePayee;
+    std::map<CTxIn, std::vector<int>> mapMasternodePayee;
 
     ADD_SERIALIZE_METHODS;
 

@@ -1754,18 +1754,18 @@ void CMasternodeMan::ProcessPayee(const CTransaction & tx, int nHeight, bool bAd
         if(nMasternodePayment == txout.nValue) {
             CMasternode * ptr = Find(txout.scriptPubKey);
             if(ptr != NULL) {
-				if(mapMasternodePayee.count(*ptr) == 0) {
+				if(mapMasternodePayee.count(ptr->vin) == 0) {
 					std::vector<int> vecH;
 					vecH.push_back(nHeight);
-					mapMasternodePayee.insert(std::make_pair(*ptr, vecH));
+					mapMasternodePayee.insert(std::make_pair(ptr->vin, vecH));
 				} else {
                     if(bAdd) {
-                	    mapMasternodePayee[*ptr].push_back(nHeight);
+                	    mapMasternodePayee[ptr->vin].push_back(nHeight);
                     } else {
-                        for(std::vector<int>::iterator it = mapMasternodePayee[*ptr].begin(); it != mapMasternodePayee[*ptr].end(); )
+                        for(std::vector<int>::iterator it = mapMasternodePayee[ptr->vin].begin(); it != mapMasternodePayee[ptr->vin].end(); )
                         {
                             if(*it == nHeight) {
-                                it = mapMasternodePayee[*ptr].erase(it);
+                                it = mapMasternodePayee[ptr->vin].erase(it);
                             } else {
                                 it++;
                             }

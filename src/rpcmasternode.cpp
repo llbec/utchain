@@ -98,7 +98,7 @@ bool cmp1_by_value(const ACTPAIR& lhs, const ACTPAIR& rhs)
 {
 	return lhs.second.first == rhs.second.first ? lhs.first < rhs.first : lhs.second.first > rhs.second.first;
 }
-typedef std::pair<CMasternode, std::vector<int>> PAYPAIR;
+typedef std::pair<CTxIn, std::vector<int>> PAYPAIR;
 bool cmp_by_size(const PAYPAIR& lhs, const PAYPAIR& rhs)
 {
     return lhs.second.size() == rhs.second.size() ? (lhs.second.size() == 0 ?  false : lhs.second.back() > rhs.second.back()) : lhs.second.size() > rhs.second.size();
@@ -593,7 +593,10 @@ UniValue masternode(const UniValue& params, bool fHelp)
         {
             std::ostringstream streamInfo;
             bool bstart = true;
-            streamInfo << std::setw(10) << (int64_t)(mninfo.first.lastPing.sigTime - mninfo.first.sigTime) << " "
+            CMasternode * pmn = mnodeman.Find(mninfo.first);
+            if(pmn == NULL)
+                continue;
+            streamInfo << std::setw(10) << (int64_t)(pmn->lastPing.sigTime - pmn->sigTime) << " "
                         << std::setw(5) << mninfo.second.size();
             for(auto n : mninfo.second)
             {
@@ -607,7 +610,7 @@ UniValue masternode(const UniValue& params, bool fHelp)
             }
             if(!bstart)
                 streamInfo << ")";
-            obj.push_back(Pair(mninfo.first.vin.prevout.ToStringShort(), streamInfo.str()));
+            obj.push_back(Pair(mninfo.first.prevout.ToStringShort(), streamInfo.str()));
         }
         return obj;
     }

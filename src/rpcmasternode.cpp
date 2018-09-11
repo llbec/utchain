@@ -598,13 +598,13 @@ UniValue masternode(const UniValue& params, bool fHelp)
             CMasternode * pmn = mnodeman.Find(mninfo.first);
             if(pmn == NULL)
                 continue;
-            streamInfo << pmn->GetStatus() << " "
+            streamInfo << std::setw(20) << pmn->GetStatus() << " "
                         << std::setw(10) << (int64_t)(pmn->lastPing.sigTime - pmn->sigTime) << " "
                         << std::setw(5) << mninfo.second.size();
             for(auto n : mninfo.second)
             {
                 if(bstart) {
-                    streamInfo << "(";
+                    streamInfo << "\n(";
                     bstart = false;
                 } else {
                     streamInfo << ", ";

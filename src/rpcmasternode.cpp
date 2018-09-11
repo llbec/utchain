@@ -612,6 +612,7 @@ UniValue masternode(const UniValue& params, bool fHelp)
                     bstart = false;
                 } else {
                     streamInfo << ", ";
+                    streamPayInfo << ", ";
                 }
                 streamInfo << n;
                 streamPayInfo << n;

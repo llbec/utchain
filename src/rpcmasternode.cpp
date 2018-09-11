@@ -562,6 +562,7 @@ UniValue masternode(const UniValue& params, bool fHelp)
     {
         std::string scmd;
         bool bBack = false;
+        bool bDetail = false;
         if (params.size() == 2) {
             scmd = params[1].get_str();
             if(scmd == "reset") {
@@ -584,6 +585,8 @@ UniValue masternode(const UniValue& params, bool fHelp)
                 }
             } else if(scmd == "block") {
                 bBack = true;;
+            } else if(scmd == "detail") {
+                bDetail = true;
             }
         }
         UniValue obj(UniValue::VOBJ);
@@ -605,11 +608,12 @@ UniValue masternode(const UniValue& params, bool fHelp)
             for(auto n : mninfo.second)
             {
                 if(bstart) {
-                    streamPayInfo << "(";
+                    streamInfo << "(";
                     bstart = false;
                 } else {
-                    streamPayInfo << ", ";
+                    streamInfo << ", ";
                 }
+                streamInfo << n;
                 streamPayInfo << n;
                 if(nlastPay == 0)
                     nlastPay = n;
@@ -619,9 +623,11 @@ UniValue masternode(const UniValue& params, bool fHelp)
                 }
             }
             if(!bstart)
-                streamPayInfo << ")";
-            obj.push_back(Pair(mninfo.first.prevout.ToStringShort(), streamInfo.str()));
-            obj.push_back(Pair(CBitcoinAddress(pmn->GetPayeeDestination()).ToString(), streamPayInfo.str()));
+                streamInfo << ")";
+            if(!bDetail)
+                obj.push_back(Pair(mninfo.first.prevout.ToStringShort(), streamInfo.str()));
+            else
+                obj.push_back(Pair(CBitcoinAddress(pmn->GetPayeeDestination()).ToString(), streamPayInfo.str()));
         }
         return obj;
     }

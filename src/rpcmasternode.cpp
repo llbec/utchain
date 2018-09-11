@@ -587,16 +587,19 @@ UniValue masternode(const UniValue& params, bool fHelp)
             }
         }
         UniValue obj(UniValue::VOBJ);
+        int nlastPay = 0;
         std::vector<PAYPAIR> vecPayee(mnodeman.mapMasternodePayee.begin(), mnodeman.mapMasternodePayee.end());
         bBack ? std::sort(vecPayee.begin(), vecPayee.end(), cmp_by_back) : std::sort(vecPayee.begin(), vecPayee.end(), cmp_by_size);
         for(auto mninfo : vecPayee)
         {
             std::ostringstream streamInfo;
             bool bstart = true;
+            nlastPay = 0;
             CMasternode * pmn = mnodeman.Find(mninfo.first);
             if(pmn == NULL)
                 continue;
-            streamInfo << std::setw(10) << (int64_t)(pmn->lastPing.sigTime - pmn->sigTime) << " "
+            streamInfo << pmn->GetStatus() << " "
+                        << std::setw(10) << (int64_t)(pmn->lastPing.sigTime - pmn->sigTime) << " "
                         << std::setw(5) << mninfo.second.size();
             for(auto n : mninfo.second)
             {
@@ -607,6 +610,12 @@ UniValue masternode(const UniValue& params, bool fHelp)
                     streamInfo << ", ";
                 }
                 streamInfo << n;
+                if(nlastPay == 0)
+                    nlastPay = n;
+                else {
+                    streamInfo << "-" << (n - nlastPay);
+                    nlastPay = n;
+                }
             }
             if(!bstart)
                 streamInfo << ")";

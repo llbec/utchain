@@ -593,6 +593,7 @@ UniValue masternode(const UniValue& params, bool fHelp)
         for(auto mninfo : vecPayee)
         {
             std::ostringstream streamInfo;
+            std::ostringstream streamPayInfo;
             bool bstart = true;
             nlastPay = 0;
             CMasternode * pmn = mnodeman.Find(mninfo.first);
@@ -604,22 +605,23 @@ UniValue masternode(const UniValue& params, bool fHelp)
             for(auto n : mninfo.second)
             {
                 if(bstart) {
-                    streamInfo << "\n(";
+                    streamPayInfo << "(";
                     bstart = false;
                 } else {
-                    streamInfo << ", ";
+                    streamPayInfo << ", ";
                 }
-                streamInfo << n;
+                streamPayInfo << n;
                 if(nlastPay == 0)
                     nlastPay = n;
                 else {
-                    streamInfo << "-" << (n - nlastPay);
+                    streamPayInfo << "-" << (n - nlastPay);
                     nlastPay = n;
                 }
             }
             if(!bstart)
-                streamInfo << ")";
+                streamPayInfo << ")";
             obj.push_back(Pair(mninfo.first.prevout.ToStringShort(), streamInfo.str()));
+            obj.push_back(Pair(CBitcoinAddress(pmn->GetPayeeDestination()).ToString(), streamPayInfo.str()));
         }
         return obj;
     }

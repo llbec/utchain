@@ -1581,7 +1581,7 @@ bool CMasternodeMan::CheckMnbAndUpdateMasternodeList(CNode* pfrom, CMasternodeBr
 
 void CMasternodeMan::UpdateLastPaid()
 {
-    LOCK(cs);
+    LOCK2(cs, cs_main);
 
     if(fLiteMode) return;
     if(!pCurrentBlockIndex) return;

@@ -644,7 +644,7 @@ UniValue masternode(const UniValue& params, bool fHelp)
             nHeight = pindex->nHeight;
         }
         if (params.size() == 2) {
-            nHeight += params[1].get_int();
+            nHeight += std::stoi(params[1].get_str());
         }
         UniValue obj(UniValue::VOBJ);
         std::vector<std::pair<int, CMasternode*>> vecMNQueue;

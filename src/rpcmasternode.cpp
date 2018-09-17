@@ -653,7 +653,7 @@ UniValue masternode(const UniValue& params, bool fHelp)
         for(auto n : vecMNQueue)
         {
             std::ostringstream streamInfo;
-            streamInfo << std::setw(10) << n.first << "-<" << n.second->vin.ToString() << ">";
+            streamInfo << std::setw(10) << n.first << "-<" << n.second->vin.ToString() << ">, " << CBitcoinAddress(n.second->GetPayeeDestination()).ToString();
             obj.push_back(Pair(to_string(nCount), streamInfo.str()));
             nCount++;
         }

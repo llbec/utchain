@@ -649,9 +649,13 @@ UniValue masternode(const UniValue& params, bool fHelp)
         UniValue obj(UniValue::VOBJ);
         std::vector<std::pair<int, CMasternode*>> vecMNQueue;
         mnodeman.GetNextMasternodeInQueueForPayment(nHeight, vecMNQueue);
+        int nCount = 1;
         for(auto n : vecMNQueue)
         {
-            obj.push_back(Pair(n.first, n.second->vin.ToString()));
+            std::ostringstream streamInfo;
+            streamInfo << std::setw(10) << n.first << "-<" << n.second->vin.ToString() << ">";
+            obj.push_back(Pair(to_string(nCount), streamInfo.str()));
+            nCount++;
         }
         obj.push_back(Pair("total", vecMNQueue.size()));
         return obj;

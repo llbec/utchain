@@ -122,7 +122,7 @@ UniValue masternode(const UniValue& params, bool fHelp)
          strCommand != "start-disabled" && strCommand != "list" && strCommand != "list-conf" && strCommand != "count" &&
          strCommand != "debug" && strCommand != "current" && strCommand != "winner" && strCommand != "winners" && strCommand != "genkey" &&
          strCommand != "connect" && strCommand != "outputs" && strCommand != "status"  && strCommand != "license" &&
-         strCommand != "lives" && strCommand != "payeestatus"))
+         strCommand != "lives" && strCommand != "payee" && strCommand != "queue"))
             throw std::runtime_error(
                 "masternode \"command\"... ( \"passphrase\" )\n"
                 "Set of commands to execute masternode related actions\n"
@@ -558,7 +558,7 @@ UniValue masternode(const UniValue& params, bool fHelp)
         return obj;
     }
 
-    if(strCommand == "payeestatus")
+    if(strCommand == "payee")
     {
         std::string scmd;
         bool bBack = false;
@@ -585,7 +585,7 @@ UniValue masternode(const UniValue& params, bool fHelp)
                 }
             } else if(scmd == "block") {
                 bBack = true;;
-            } else if(scmd == "detail") {
+            } else if(scmd == "status") {
                 bDetail = true;
             }
         }
@@ -630,6 +630,30 @@ UniValue masternode(const UniValue& params, bool fHelp)
             else
                 obj.push_back(Pair(CBitcoinAddress(pmn->GetPayeeDestination()).ToString(), streamPayInfo.str()));
         }
+        return obj;
+    }
+
+    if(strCommand == "queue")
+    {
+        int nHeight;
+        {
+            LOCK(cs_main);
+            CBlockIndex* pindex = chainActive.Tip();
+            if(!pindex) return NullUniValue;
+
+            nHeight = pindex->nHeight;
+        }
+        if (params.size() == 2) {
+            nHeight += params[1].get_int();
+        }
+        UniValue obj(UniValue::VOBJ);
+        std::vector<std::pair<int, CMasternode*>>& vecMNQueue;
+        mnodeman.GetNextMasternodeInQueueForPayment(nHeight, vecMNQueue);
+        for(auto n : vecMNQueue)
+        {
+            obj.push_back(Pair(n.frist, n.second->vin.ToString()));
+        }
+        obj.push_back(Pair("total", vecMNQueue.size()));
         return obj;
     }
 

@@ -300,6 +300,8 @@ public:
     /// Same as above but use current block height
     CMasternode* GetNextMasternodeInQueueForPayment(bool fFilterSigTime, int& nCount);
 
+    bool GetNextMasternodeInQueueForPayment(int nBlockHeight, std::vector<std::pair<int, CMasternode*>>& vecMasternodeLastPaid);
+
     /// Find a random entry
     CMasternode* FindRandomNotInVec(const std::vector<CTxIn> &vecToExclude, int nProtocolVersion = -1);
 

@@ -695,6 +695,56 @@ CMasternode* CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeight
     return pBestMasternode;
 }
 
+bool CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeight, std::vector<std::pair<int, CMasternode*>>& vecMasternodeLastPaid)
+{
+    // Need LOCK2 here to ensure consistent locking order because the GetBlockHash call below locks cs_main
+    LOCK2(cs_main,cs);
+
+    bool fFilterSigTime = true;
+    int nCount = 0;
+
+    CMasternode *pBestMasternode = NULL;
+
+    /*
+        Make a vector with all of the last paid times
+    */
+
+    int nMnCount = CountEnabled();
+    BOOST_FOREACH(CMasternode &mn, vMasternodes)
+    {
+        if(!mn.IsValidForPayment()) continue;
+
+        // //check protocol version
+        if(mn.nProtocolVersion < mnpayments.GetMinMasternodePaymentsProto()) continue;
+
+        //it's in the list (up to 8 entries ahead of current block to allow propagation) -- so let's skip it
+        if(mnpayments.IsScheduled(mn, nBlockHeight)) continue;
+
+        //it's too new, wait for a cycle
+        if(fFilterSigTime && mn.sigTime + (nMnCount*2.6*60) > GetAdjustedTime()) continue;
+
+        //make sure it has at least as many confirmations as there are masternodes
+        if(mn.GetCollateralAge() < nMnCount) continue;
+
+        vecMasternodeLastPaid.push_back(std::make_pair(mn.GetLastPaidBlock(), &mn));
+    }
+
+    nCount = (int)vecMasternodeLastPaid.size();
+
+    //when the network is in the process of upgrading, don't penalize nodes that recently restarted
+    if(fFilterSigTime && nCount < nMnCount/3) return GetNextMasternodeInQueueForPayment(nBlockHeight, false, nCount);
+
+    // Sort them low to high
+    sort(vecMasternodeLastPaid.begin(), vecMasternodeLastPaid.end(), CompareLastPaidBlock());
+
+    int nTenthNetwork = nMnCount/10;
+    std::vector<std::pair<int, CMasternode*>>::iterator it = vecMasternodeLastPaid.begin() + nTenthNetwork;
+    vecMasternodeLastPaid.erase(it, vecMasternodeLastPaid.end());
+    
+    return true;
+}
+
+
 CMasternode* CMasternodeMan::FindRandomNotInVec(const std::vector<CTxIn> &vecToExclude, int nProtocolVersion)
 {
     LOCK(cs);

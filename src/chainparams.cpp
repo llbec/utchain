@@ -200,17 +200,19 @@ public:
         consensus.colleteral = int64_t(1e4 * COIN);                         // masternode colleteral
 
         consensus.nSubsidyHalvingInterval = 840960;                     // 4 years, 24 * 60 / 2.5 * 365 * 4 
-        consensus.nMasternodePaymentsStartBlock = 57600;                // not true, but it's ok as long as it's less then nMasternodePaymentsIncreaseBlock
+        /*testmainnet*/
+        consensus.nMasternodePaymentsStartBlock = 50;                // not true, but it's ok as long as it's less then nMasternodePaymentsIncreaseBlock
         //consensus.nMasternodePaymentsIncreaseBlock = 576 * 365;         //576 * 365
         consensus.nMasternodePaymentsIncreasePeriod = 576 * 365;        // 17280 - actual historical value
         consensus.nInstantSendKeepLock = 24;
         consensus.nBudgetPaymentsStartBlock = 2;                        // actual historical value
-        consensus.nBudgetPaymentsCycleBlocks = 576 * 30;                // ~(60*24*30)/2.6, actual number of blocks per month is 200700 / 12 = 16725
-        consensus.nBudgetPaymentsWindowBlocks = 100;
-        consensus.nBudgetProposalEstablishingTime = 60*60*24;
-        consensus.nSuperblockStartBlock = 100;                          // The block at which 12.1 goes live (end of final 12.0 budget cycle)
-        consensus.nSuperblockCycle = 576 * 30; 				            // ~(60*24*30)/2.6, actual number of blocks per month is 200700 / 12 = 16725
-        consensus.nGovernanceMinQuorum = 10;
+        consensus.nBudgetPaymentsCycleBlocks = 10;                // ~(60*24*30)/2.6, actual number of blocks per month is 200700 / 12 = 16725
+        consensus.nBudgetPaymentsWindowBlocks = 10;
+        consensus.nBudgetProposalEstablishingTime = 10;
+        consensus.nSuperblockStartBlock = 10;                          // The block at which 12.1 goes live (end of final 12.0 budget cycle)
+        consensus.nSuperblockCycle = 10; 				            // ~(60*24*30)/2.6, actual number of blocks per month is 200700 / 12 = 16725
+        consensus.nGovernanceMinQuorum = 5;
+        /*testmainnet*/
         consensus.nGovernanceFilterElements = 20000;
         consensus.nMasternodeMinimumConfirmations = 15;
         consensus.nMajorityEnforceBlockUpgrade = 750;
@@ -247,7 +249,9 @@ public:
         pchMessageStart[2] = 0x6f;
         pchMessageStart[3] = 0xb1;
 		vAlertPubKey = ParseHex("028efd0f3c697689f8f1f6744edbbc1f85871b8c51218ddd89d90a3e435d1a8691");
-        nDefaultPort = 9888;
+        /*testmainnet*/
+        nDefaultPort = 59888;
+        /*testmainnet*/
         nMaxTipAge = 6 * 60 * 60; // ~144 blocks behind -> 2 x fork detection time, was 24 * 60 * 60 in bitcoin
         nPruneAfterHeight = 100000;
         arith_uint256 nTempBit =  UintToArith256( consensus.powLimit);
@@ -277,16 +281,18 @@ public:
 
         //vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_main, pnSeed6_main + ARRAYLEN(pnSeed6_main));
         vFixedSeeds.clear();
-        vSeeds.clear();		
-        vSeeds.push_back(CDNSSeedData("ulord.one", "seed1.ulord.one"));
-	vSeeds.push_back(CDNSSeedData("ulord.one", "seed2.ulord.one"));  
-	vSeeds.push_back(CDNSSeedData("ulord.one", "seed3.ulord.one"));
-	vSeeds.push_back(CDNSSeedData("ulord.one", "seed4.ulord.one"));
-	vSeeds.push_back(CDNSSeedData("ulord.one", "seed5.ulord.one"));
-	vSeeds.push_back(CDNSSeedData("ulord.one", "seed6.ulord.one"));
-	vSeeds.push_back(CDNSSeedData("ulord.one", "seed7.ulord.one"));
-	    
-	uCenter = "ucenter.ulord.one";                           // for masternode verify
+        vSeeds.clear();
+        /*testmainnet*/
+        /*vSeeds.push_back(CDNSSeedData("ulord.one", "seed1.ulord.one"));
+        vSeeds.push_back(CDNSSeedData("ulord.one", "seed2.ulord.one"));  
+        vSeeds.push_back(CDNSSeedData("ulord.one", "seed3.ulord.one"));
+        vSeeds.push_back(CDNSSeedData("ulord.one", "seed4.ulord.one"));
+        vSeeds.push_back(CDNSSeedData("ulord.one", "seed5.ulord.one"));
+        vSeeds.push_back(CDNSSeedData("ulord.one", "seed6.ulord.one"));
+        vSeeds.push_back(CDNSSeedData("ulord.one", "seed7.ulord.one"));*/
+            
+        uCenter = "ucenter.uosio.org";                           // for masternode verify
+        /*testmainnet*/
 
         fMiningRequiresPeers = true;
         fDefaultConsistencyChecks = false;
@@ -298,12 +304,13 @@ public:
         nFulfilledRequestExpireTime = 60*60; // fulfilled requests expire in 1 hour
         strSporkPubKey = "03dc480bc3e569ea1ceed5ab8ed5904abd3e938e0f7e594ebf82397e7830fa56a5";
 
+        /*testmainnet*/
         checkpointData = (CCheckpointData) {
             boost::assign::map_list_of
             (   0, uint256S("0x0000079b37c3c290dc81e95bca28aa7df5636145ae35ebee86e10cc3cce96fb2"))
-            (  10, uint256S("0x0000021d155df9c31a41f102ea2490a6706f58cc6a5bfac24723cec75804f82a"))
+            /*(  10, uint256S("0x0000021d155df9c31a41f102ea2490a6706f58cc6a5bfac24723cec75804f82a"))
             ( 100, uint256S("0x000001b236b617573c507362b517d721235efe9371aa9f4e9eaee6517e5af6a2"))
-	    ( 1000, uint256S("0x0000000084e4cd2c850c88f0978c2b46b08e9f9fefceb89f023e5274ae497b8a")),
+            ( 1000, uint256S("0x0000000084e4cd2c850c88f0978c2b46b08e9f9fefceb89f023e5274ae497b8a"))*/,
             1526704298,                       // * UNIX timestamp of last checkpoint block
             0,                                // * total number of transactions between genesis and last checkpoint
                                               //   (the tx=... number in the SetBestChain debug.log lines)
@@ -312,9 +319,10 @@ public:
 
         // Founders reward script expects a vector of 2-of-3 multisig addresses
         vFoundersRewardAddress = {
-            "USu35JzWCXSvgvDL1utfFzb52zR1fdkfZ9", /* main-index: 0*/
-            "US2b9XyE5fCu8DNXhC4xwU7wo7b4uMNy4q", /* main-index: 1*/
+            "UkzpmKhQykbTaRH1wLXUmwFDZqmiMV719r", /* main-index: 0*/
+            "UVu15LEZH3SJxncSH6pgtWtzMray71ir3g", /* main-index: 1*/
 	    };
+        /*testmainnet*/
     }
 };
 static CMainParams mainParams;

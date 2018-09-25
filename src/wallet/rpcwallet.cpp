@@ -34,16 +34,10 @@
 #include <regex>
 
 using namespace std;
-std::map<std::string,int> m_vStringName;
+std::map<std::string,int> g_mStringName;
 
 int64_t nWalletUnlockTime;
 static CCriticalSection cs_nWalletUnlockTime;
-
-// ACCOUNT_NAME DEPOSIT
-#define MAX_ACCOUNT_MONEY 10 * COIN
-
-// ACCOUNT_NAME length
-#define MAX_ACCOUNT_SIZE 12
 
 std::string HelpRequiringPassphrase()
 {
@@ -438,7 +432,7 @@ UniValue claimname(const UniValue& params, bool fHelp)
     }
     if (fHelp || params.size() < 2 || params.size() > 3)
     throw runtime_error(
-        "claimname \"name\" \"address\" amount\n"
+        "claimname \"name\" \"ulordaddress\" \"amount\"\n"
         "\nCreate a transaction which issues a claim assigning a value to a name. The claim will be authoritative if the transaction amount is greater than the transaction amount of all other unspent transactions which issue a claim over the same name, and it will remain authoritative as long as it remains unspent and there are no other greater unspent transactions issuing a claim over the same name. The amount is a real and is rounded to the nearest 0.00000001\n"
         + HelpRequiringPassphrase() +
         "\nArguments:\n"
@@ -448,20 +442,21 @@ UniValue claimname(const UniValue& params, bool fHelp)
         "\nResult:\n"
         "\"transactionid\"  (string) The transaction id.\n"
 		"\nExamples:\n"
-		+ HelpExampleCli("claimname", "\"alfredzky\" \"uSVYC1k86emWsr3HPMvd5YBDeTJoThyZFN\" 10")
+		+ HelpExampleCli("claimname", "\"alfredzky\",\"uwnLY9Tf7Zsef8gMGL2fhWA9ZmMjt4KPwg\",\"10\" ")
+		+ HelpExampleRpc("claimname", "\"alfredzky\",\"uwnLY9Tf7Zsef8gMGL2fhWA9ZmMjt4KPwg\",\"10\" ")
     );
     string sName = params[0].get_str();
     string sAddress= params[1].get_str();
     std::vector<unsigned char>vchName(sName.begin(),sName.end());
     std::vector<unsigned char>vchValue(sAddress.begin(),sAddress.end());
 	std::map<std::string,int>::iterator m_it;
-	std::vector<std::string>:: iterator m_strit;
+	std::vector<std::string>:: iterator v_it;
 	std::string szReg = "^[a-z0-5]+[a-z0-5]$";
 	std::regex reg( szReg );
 	
-	for (m_strit = v_banname.begin(); m_strit != v_banname.end(); m_strit++)
+	for (v_it = g_vBanName.begin(); v_it != g_vBanName.end(); v_it++)
 	{
-		if (!m_strit->compare(sName))
+		if (!v_it->compare(sName))
 		{
 			throw JSONRPCError(RPC_ACCOUNTNAME_ILLEGAL, "The account name is illegal");
 		}
@@ -473,7 +468,7 @@ UniValue claimname(const UniValue& params, bool fHelp)
 	    throw JSONRPCError(RPC_ACCOUNTNAME_ILLEGAL, "The account name is illegal");
 	}
 	
-	for ( m_it = m_vStringName.begin() ; m_it != m_vStringName.end() ; m_it++ )
+	for ( m_it = g_mStringName.begin() ; m_it != g_mStringName.end() ; m_it++ )
 	{
 		if ( !m_it->first.compare(sName) )
 		{
@@ -487,7 +482,7 @@ UniValue claimname(const UniValue& params, bool fHelp)
 	
 	if ( vchName.size() > MAX_ACCOUNT_SIZE)
 	{
-	    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Ulord account_name ,it is too long");
+	    throw JSONRPCError(RPC_ACCOUNTNAME_TOO_LONG, "Invalid Ulord account_name ,it is too long");
 	}
 	
 	CBitcoinAddress address(params[1].get_str());
@@ -564,14 +559,20 @@ UniValue updateclaim( const UniValue & params,bool fHelp)
         "\nResult:\n"
         "\"transactionid\"  (string) The new transaction id.\n"
 	"\nExamples:\n"
-	+ HelpExampleCli("updateclaim", "\"770c02b3df6b5707ee79d5915ed85f8f5d2e0d6eca799f02a9d91262041f18f8\" \"uSVYC1k86emWsr3HPMvd5YBDeTJoThyZFN\" 10")  
+		+ HelpExampleCli("updateclaim", "\"8fb48e61ccce3cb5083d8ad9ee7ab73c58a40c1594e43386ca425cd12187db6a\",\"uwnLY9Tf7Zsef8gMGL2fhWA9ZmMjt4KPwg\", \"10\" ")
+		+ HelpExampleRpc("updateclaim", "\"8fb48e61ccce3cb5083d8ad9ee7ab73c58a40c1594e43386ca425cd12187db6a\",\"uwnLY9Tf7Zsef8gMGL2fhWA9ZmMjt4KPwg\", \"10\" ")
     );
 
     uint256 hash;
     hash.SetHex( params[0].get_str());
     std::vector<unsigned char>vchName;
-    string sValue = params[1].get_str();
-    std::vector<unsigned char>vchValue(sValue.begin(),sValue.end());
+    string sAddress = params[1].get_str();
+    std::vector<unsigned char>vchValue(sAddress.begin(),sAddress.end());
+    CBitcoinAddress address(params[1].get_str());
+    if (!address.IsValid())
+    {
+	throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Ulord address");
+    }
     CAmount nAmount = AmountFromValue(params[2]);
     isminefilter filter = ISMINE_CLAIM;
     UniValue entry;
@@ -664,7 +665,8 @@ UniValue abandonclaim(const UniValue&params,bool fHelp)
         "\nResult:\n"
         "\"transactionid\"  (string) The new transaction id.\n"
 	"\nExamples:\n"
-	+ HelpExampleCli("abandonclaim", "\"770c02b3df6b5707ee79d5915ed85f8f5d2e0d6eca799f02a9d91262041f18f8\" \"uSVYC1k86emWsr3HPMvd5YBDeTJoThyZFN\" 10")   
+		+ HelpExampleCli("abandonclaim", "\"alfredzky\",\"8fb48e61ccce3cb5083d8ad9ee7ab73c58a40c1594e43386ca425cd12187db6a\",\"10\" ")
+		+ HelpExampleRpc("abandonclaim", "\"alfredzky\",\"8fb48e61ccce3cb5083d8ad9ee7ab73c58a40c1594e43386ca425cd12187db6a\",\"10\" ")
     );
     uint256 hash;
     hash.SetHex(params[0].get_str());
@@ -3638,7 +3640,7 @@ UniValue sendtoaccountname(const UniValue &params, bool fHelp)
 {
 	 if (fHelp ||  params.size() != 2)
         throw std::runtime_error(
-        "sendtoaccountname \"name\" \"amount\n"
+        "sendtoaccountname \"name\" \"amount\" \n"
         "\nSend an amount to a given account name.\n"
         + HelpRequiringPassphrase() +
         "\nArguments:\n"
@@ -3647,7 +3649,8 @@ UniValue sendtoaccountname(const UniValue &params, bool fHelp)
         "\nResult:\n"
         "\"transactionid\"  (string) The transaction id.\n"
         "\nExamples:\n"
-        + HelpExampleCli("sendtoaccountname", "\"alfredzky\" 0.1")
+        + HelpExampleCli("sendtoaccountname", "\"alfredzky\",\"0.1\" ")
+        + HelpExampleRpc("sendtoaccountname", "\"alfredzky\",\"0.1\" ")
     );
 
     std::string sName = params[0].get_str();

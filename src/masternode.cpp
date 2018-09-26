@@ -1087,7 +1087,7 @@ bool CMasternodePing::CheckAndUpdate(CMasternode* pmn, bool fFromNewBroadcast, i
     // check the certificate and make sure if the masternode had registered on the Ulord center server
     if(!mnodecenter.VerifyLicense(*this)) {
         pmn->nActiveState = pmn->MASTERNODE_NO_REGISTERED;
-        LogPrintf("MNPING -- Verify license failed masternode=%s\n",mnp.vin.prevout.ToStringShort());
+        LogPrintf("MNPING -- Verify license failed masternode=%s\n",vin.prevout.ToStringShort());
         //nDos += 10; //disable, why banned this peer?
         return false;
     }

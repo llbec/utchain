@@ -693,8 +693,6 @@ bool CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeight, std::v
     bool fFilterSigTime = true;
     int nCount = 0;
 
-    CMasternode *pBestMasternode = NULL;
-
     /*
         Make a vector with all of the last paid times
     */

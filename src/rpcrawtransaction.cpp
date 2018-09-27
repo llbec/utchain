@@ -2288,14 +2288,14 @@ UniValue lockcoin(const UniValue &params, bool fHelp)
 	int64_t l_time = tm.tv_sec + atoi(params[2].get_str());
 	// construct contract of script
 	CPubKey newKey;
-    if ( !pwalletMain->GetKeyFromPool(newKey) )
+    /*if ( !pwalletMain->GetKeyFromPool(newKey) )
         throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT,"Error: Keypool ran out,please call keypoolrefill first");
-	 uint160 refund =  newKey.gethash();
+	uint160 refund =  newKey.gethash();*/
 	uint160 addr = address.GetData();
 
 	CScript contract =  CScript() << OP_IF << OP_RIPEMD160 << ToByteVector(secret_hash) << OP_EQUALVERIFY << OP_DUP << OP_HASH160 \
 	<< ToByteVector(addr) << OP_ELSE << l_time << OP_CHECKLOCKTIMEVERIFY << OP_DROP << OP_DUP << OP_HASH160\
-	<< ToByteVector(refund) << OP_ENDIF << OP_EQUALVERIFY << OP_CHECKSIG;
+	<< ToByteVector(addr) << OP_ENDIF << OP_EQUALVERIFY << OP_CHECKSIG;
 	
 	// The build script is 160 hashes.
 	CScriptID contractP2SH = CScriptID(contract);
@@ -2329,11 +2329,11 @@ UniValue lockcoin(const UniValue &params, bool fHelp)
 			throw JSONRPCError(RPC_WALLET_ERROR,"Error: The transaction was rejected! This might hapen if some of the coins in your wallet were already spent, such as if you used a copy of wallet.dat and coins were spent in the copy but not marked as spent here.");
 	
 	UniValue result(UniValue::VOBJ);
-	CBitcoinAddress refund_address;
+	/*CBitcoinAddress refund_address;
 	refund_address.Set(CKeyID(refund));
-	result.push_back(Pair("refund_address",refund_address.ToString()));
-	result.push_back(Pair("hexstring",wtxNew.GetHash().GetHex()));
-	result.push_back(Pair("hex",EncodeHexTx(wtxNew)));
+	result.push_back(Pair("refund_address",refund_address.ToString()));*/
+	result.push_back(Pair("tx hash",EncodeHexTx(wtxNew)));
+	result.push_back(Pair("tx",wtxNew.GetHash().GetHex()));
 	result.push_back(Pair("Contract(address) ",contract_address.ToString()));
 	result.push_back(Pair("contract",HexStr(contract.begin(),contract.end())));
 	result.push_back(Pair("secret",secret.ToString()));

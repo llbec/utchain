@@ -4309,8 +4309,8 @@ static bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state
             if (ppindex)
                 *ppindex = pindex;
             if (pindex->nStatus & BLOCK_FAILED_MASK)
-                return state.Invalid(error("%s: block is marked invalid", __func__), 0, "duplicate");
-            return true;
+                //return state.Invalid(error("%s: block is marked invalid", __func__), 0, "duplicate");
+            else return true;
         }
 
         if (!CheckBlockHeader(block, state))

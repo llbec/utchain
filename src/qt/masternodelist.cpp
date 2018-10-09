@@ -103,6 +103,13 @@ void MasternodeList::StartAlias(std::string strAlias)
             bool fSuccess = CMasternodeBroadcast::Create(mne.getIp(), mne.getPrivKey(), mne.getTxHash(), mne.getOutputIndex(), strError, mnb);
 
             if(fSuccess) {
+                fSuccess = CBitcoinAddress().Set(mnb.GetPayeeDestination());
+            }
+            if( fSuccess ) 
+            {
+                fSuccess = mnodecenter.LoadLicense(mnb);        
+            }
+            if(fSuccess) {
                 strStatusHtml += "<br>Successfully started masternode.";
                 mnodeman.UpdateMasternodeList(mnb);
                 mnb.Relay();
@@ -138,6 +145,13 @@ void MasternodeList::StartAll(std::string strCommand)
         if(strCommand == "start-missing" && pmn) continue;
 
         bool fSuccess = CMasternodeBroadcast::Create(mne.getIp(), mne.getPrivKey(), mne.getTxHash(), mne.getOutputIndex(), strError, mnb);
+        if( fSuccess ) {
+            fSuccess = CBitcoinAddress().Set(mnb.GetPayeeDestination());
+        }
+        if( fSuccess ) 
+        {
+            fSuccess = mnodecenter.LoadLicense(mnb);        
+        }
 
         if(fSuccess) {
             nCountSuccessful++;

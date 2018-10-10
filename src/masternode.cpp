@@ -160,7 +160,7 @@ void CMasternode::swap(CMasternode& first, CMasternode& second) // nothrow
         swap(first.fUnitTest, second.fUnitTest);
         swap(first.mapGovernanceObjectsVotedOn, second.mapGovernanceObjectsVotedOn);
         swap(first.payeeAddress, second.payeeAddress);
-        LogPrintf("CMasternode::swap-- payeeAdress=%s  second=%s\n", first.payeeAddress.ToString(), second.payeeAddress.ToString());
+        //LogPrintf("CMasternode::swap-- payeeAdress=%s  second=%s\n", first.payeeAddress.ToString(), second.payeeAddress.ToString());
 }
 
 //
@@ -186,6 +186,7 @@ bool CMasternode::UpdateFromNewBroadcast(CMasternodeBroadcast& mnb)
     mnb.lastPing.certifyVersion= certifyVersion;
     mnb.lastPing.certificate= certificate;
     mnb.lastPing.certifyPeriod= certifyPeriod;
+	
     if(mnb.lastPing == CMasternodePing() || (mnb.lastPing != CMasternodePing() && mnb.lastPing.CheckAndUpdate(this, true, nDos))) {
         lastPing = mnb.lastPing;
         mnodeman.mapSeenMasternodePing.insert(std::make_pair(lastPing.GetHash(), lastPing));
@@ -233,13 +234,13 @@ void CMasternode::Check(bool fForce)
 
     if(ShutdownRequested()) return;
 
-    if(!fForce && (GetTime() - nTimeLastChecked < MASTERNODE_CHECK_SECONDS)) return;
+    if(!fForce && (GetTime() - nTimeLastChecked < MASTERNODE_CHECK_SECONDS*2)) return;
     nTimeLastChecked = GetTime();
 
     LogPrint("masternode", "CMasternode::Check -- Masternode %s is in %s state\n", vin.prevout.ToStringShort(), GetStateString());
 
     //once spent, stop doing the checks
-    if(IsOutpointSpent() || IsRegistered()) return;
+    if(IsOutpointSpent()) return;
 
     int nHeight = 0;
     if(!fUnitTest) {
@@ -800,6 +801,15 @@ bool CMasternodeBroadcast::CheckOutpoint(int& nDos)
         }
     }
 
+    //int64_t tespPeriod= certifyPeriod;
+    if(certifyPeriod < lastPing.certifyPeriod)
+    {
+        LogPrintf("CMasternodeBroadcast::CheckOutpoint warning certificate,lastping =[%ld] period=[%ld]\n", lastPing.certifyPeriod,certifyPeriod);
+        certifyPeriod= lastPing.certifyPeriod;
+        certifyVersion= lastPing.certifyVersion;
+        certificate = lastPing.certificate;
+    }
+
     // check if it is registered on the Ulord center server
     if(!mnodecenter.VerifyLicense(*this))
     {
@@ -1109,6 +1119,11 @@ bool CMasternodePing::CheckAndUpdate(CMasternode* pmn, bool fFromNewBroadcast, i
     uint256 hash = mnb.GetHash();
     if (mnodeman.mapSeenMasternodeBroadcast.count(hash)) {
         mnodeman.mapSeenMasternodeBroadcast[hash].second.lastPing = *this;
+        if(mnodeman.mapSeenMasternodeBroadcast[hash].second.certifyPeriod < certifyPeriod) {
+            mnodeman.mapSeenMasternodeBroadcast[hash].second.certifyPeriod = certifyPeriod;
+            mnodeman.mapSeenMasternodeBroadcast[hash].second.certificate = certificate;
+            mnodeman.mapSeenMasternodeBroadcast[hash].second.certifyVersion = certifyVersion;
+        }
     }
 
     pmn->Check(true); // force update, ignoring cache

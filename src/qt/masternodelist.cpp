@@ -101,10 +101,10 @@ void MasternodeList::StartAlias(std::string strAlias)
             CMasternodeBroadcast mnb;
 
             bool fSuccess = CMasternodeBroadcast::Create(mne.getIp(), mne.getPrivKey(), mne.getTxHash(), mne.getOutputIndex(), strError, mnb);
-
-            if(fSuccess) {
+            if( fSuccess ) {
                 fSuccess = CBitcoinAddress().Set(mnb.GetPayeeDestination());
             }
+            
             if( fSuccess ) 
             {
                 fSuccess = mnodecenter.LoadLicense(mnb);        
@@ -148,6 +148,7 @@ void MasternodeList::StartAll(std::string strCommand)
         if( fSuccess ) {
             fSuccess = CBitcoinAddress().Set(mnb.GetPayeeDestination());
         }
+           
         if( fSuccess ) 
         {
             fSuccess = mnodecenter.LoadLicense(mnb);        

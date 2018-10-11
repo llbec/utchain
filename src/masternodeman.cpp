@@ -1915,6 +1915,7 @@ bool CMstNodeData::IsNeedUpdateLicense()
     return false;
 }
 
+/*keep for the old version*/
 int mstnodequest::GetMsgBuf(char * buf)
 {
     std::ostringstream os;
@@ -1933,6 +1934,7 @@ int mstnodequest::GetMsgBuf(char * buf)
     return buflength;
 }
 
+/*new functuion without boost*/
 int mstnodequest::GetMsgBufNew(char * buf)
 {
     CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
@@ -1996,6 +1998,9 @@ bool CMasternodeCenter::InitCenter(std::string strError)
 
 std::string CMasternodeCenter::GetCenterPubKey(int version)
 {
+    if(!IsUse())
+            return "";
+    
     map_it it = mapVersionPubkey_.find(version);
     if(it != mapVersionPubkey_.end()) {
         return it->second;

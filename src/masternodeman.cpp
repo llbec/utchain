@@ -1917,6 +1917,7 @@ bool CMstNodeData::IsNeedUpdateLicense()
     return false;
 }
 
+/*keep for the old version*/
 int mstnodequest::GetMsgBuf(char * buf)
 {
     std::ostringstream os;
@@ -1935,6 +1936,7 @@ int mstnodequest::GetMsgBuf(char * buf)
     return buflength;
 }
 
+/*new functuion without boost*/
 int mstnodequest::GetMsgBufNew(char * buf)
 {
     CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
@@ -1954,9 +1956,12 @@ int mstnodequest::GetMsgBufNew(char * buf)
 
 bool CMasternodeCenter::InitCenter(std::string strError)
 {
-    std::vector<CNetAddr> vIPs;
+    if (!sporkManager.IsSporkActive(SPORK_18_REQUIRE_MASTER_VERIFY_FLAG)) return true;
 
-    if (LookupHost(Params().ucenter().c_str(), vIPs)) {
+    std::vector<CNetAddr> vIPs;
+    std::string sCenterDomain = GetArg("centerdomain", Params().ucenter());
+
+    if (LookupHost(sCenterDomain.c_str(), vIPs)) {
         if (vIPs.empty()) {
             strError = "ucenter ip resolving failed, IPs empty.";
             return false;
@@ -1998,6 +2003,9 @@ bool CMasternodeCenter::InitCenter(std::string strError)
 
 std::string CMasternodeCenter::GetCenterPubKey(int version)
 {
+    if(!IsUse())
+            return "";
+    
     map_it it = mapVersionPubkey_.find(version);
     if(it != mapVersionPubkey_.end()) {
         return it->second;
@@ -2031,7 +2039,7 @@ bool CMasternodeCenter::RequestLicense(CMasternode &mn)
     mstquest._txid = mn.vin.prevout.hash.GetHex();
     mstquest._voutid = mn.vin.prevout.n;
 
-    buflength = mstquest.GetMsgBuf(cbuf);
+    buflength = mstquest.GetMsgBufNew(cbuf);
     if(0 == buflength)
         return error("CMasternodeCenter::RequestLicense: get mstquest msg failed!!!!!!!!!");
 
@@ -2076,8 +2084,11 @@ bool CMasternodeCenter::RequestLicense(CMasternode &mn)
 
         std::string str(cbuf + mstnd_iReqMsgHeadLen, buflength);
         mstnoderes  mstres;
-        std::istringstream strstream(str);
-        boost::archive::binary_iarchive ia(strstream);
+        /*std::istringstream strstream(str);
+        boost::archive::binary_iarchive ia(strstream);*/
+        std::vector<char> vRcv;
+        vRcv.insert(vRcv.end(), str.begin(), str.end());
+        CDataStream ia(vRcv, SER_NETWORK, PROTOCOL_VERSION);
         ia >> mstres;
         if(mstres._nodetype != MST_QUEST_ONE) {
             CloseSocket(hSocket);
@@ -2134,7 +2145,7 @@ bool CMasternodeCenter::RequestCenterKey()
     mstquest._txid = uint256().GetHex();
     mstquest._voutid = 0;
 
-    buflength = mstquest.GetMsgBuf(cbuf);
+    buflength = mstquest.GetMsgBufNew(cbuf);
     if(0 == buflength)
         return error("CMasternodeCenter::RequestCenterKey: get mstquest msg failed!!!!!!!!!");
 
@@ -2179,8 +2190,11 @@ bool CMasternodeCenter::RequestCenterKey()
 
         std::string str(cbuf + mstnd_iReqMsgHeadLen, buflength);
         mstnoderes  mstres;
-        std::istringstream strstream(str);
-        boost::archive::binary_iarchive ia(strstream);
+        /*std::istringstream strstream(str);
+        boost::archive::binary_iarchive ia(strstream);*/
+        std::vector<char> vRcv;
+        vRcv.insert(vRcv.end(), str.begin(), str.end());
+        CDataStream ia(vRcv, SER_NETWORK, PROTOCOL_VERSION);
         ia >> mstres;
         if(mstres._nodetype != MST_QUEST_KEY) {
             CloseSocket(hSocket);

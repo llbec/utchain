@@ -270,7 +270,7 @@ void CMasternodeMan::CheckAndRemove()
             CMasternodeBroadcast mnb = CMasternodeBroadcast(*it);
             uint256 hash = mnb.GetHash();
             // If collateral was spent ...
-            if ((*it).IsOutpointSpent() || (*it).IsRegistered()) {
+            if ((*it).IsOutpointSpent()) {
                 LogPrint("masternode", "CMasternodeMan::CheckAndRemove -- Removing Masternode: %s  addr=%s  %i now\n", (*it).GetStateString(), (*it).addr.ToString(), size() - 1);
 
                 // erase all of the broadcasts we've seen from this txin, ...
@@ -984,18 +984,6 @@ void CMasternodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
         int nDos = 0;
         if(mnp.CheckAndUpdate(pmn, false, nDos)) return;
 
-        // check the certificate and make sure if the masternode had registered on the Ulord center server
-        if(!mnodecenter.VerifyLicense(mnp))
-        {
-            if(pmn)
-            pmn->nActiveState = pmn->MASTERNODE_NO_REGISTERED;
-
-            LogPrintf("MNPING -- Verify license failed masternode=%s\n",mnp.vin.prevout.ToStringShort());
-            nDos += 10;
-        }else{
-            return ;
-        }
-
         if(nDos > 0) {
             // if anything significant failed, mark that node
             Misbehaving(pfrom->GetId(), nDos);
@@ -1058,7 +1046,7 @@ void CMasternodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
             }
 
             if (vin == mn.vin) {
-                LogPrintf("DSEG -- Sent 1 Masternode inv to peer %d\n", pfrom->id);
+                LogPrintf("DSEG -- Sent Masternode<%s> inv to peer %d\n", mn.vin.prevout.ToStringShort(), pfrom->id);
                 return;
             }
         }
@@ -1509,7 +1497,7 @@ std::string CMasternodeMan::ToString() const
 
 void CMasternodeMan::UpdateMasternodeList(CMasternodeBroadcast mnb)
 {
-    LOCK(cs);
+    LOCK2(cs_main, cs);
     mapSeenMasternodePing.insert(std::make_pair(mnb.lastPing.GetHash(), mnb.lastPing));
     mapSeenMasternodeBroadcast.insert(std::make_pair(mnb.GetHash(), std::make_pair(GetTime(), mnb)));
 
@@ -1546,6 +1534,11 @@ bool CMasternodeMan::CheckMnbAndUpdateMasternodeList(CNode* pfrom, CMasternodeBr
             LogPrint("masternode", "CMasternodeMan::CheckMnbAndUpdateMasternodeList -- masternode=%s seen update\n", mnb.vin.prevout.ToStringShort());
             mapSeenMasternodeBroadcast[hash].first = GetTime();
             masternodeSync.AddedMasternodeList();
+        }
+        if(mapSeenMasternodeBroadcast[hash].second.certifyPeriod < mnb.certifyPeriod && mnodecenter.VerifyLicense(CMasternode(mnb))) {
+            mapSeenMasternodeBroadcast[hash].second.certifyPeriod = mnb.certifyPeriod;
+            mapSeenMasternodeBroadcast[hash].second.certificate = mnb.certificate;
+            mapSeenMasternodeBroadcast[hash].second.certifyVersion = mnb.certifyVersion;
         }
         // did we ask this node for it?
         if(pfrom && IsMnbRecoveryRequested(hash) && GetTime() < mMnbRecoveryRequests[hash].first) {
@@ -1768,6 +1761,11 @@ void CMasternodeMan::SetMasternodeLastPing(const CTxIn& vin, const CMasternodePi
     uint256 hash = mnb.GetHash();
     if(mapSeenMasternodeBroadcast.count(hash)) {
         mapSeenMasternodeBroadcast[hash].second.lastPing = mnp;
+        if(mapSeenMasternodeBroadcast[hash].second.certifyPeriod < mnp.certifyPeriod) {
+            mapSeenMasternodeBroadcast[hash].second.certifyPeriod = mnp.certifyPeriod;
+            mapSeenMasternodeBroadcast[hash].second.certificate = mnp.certificate;
+            mapSeenMasternodeBroadcast[hash].second.certifyVersion = mnp.certifyVersion;
+        }
     }
 }
 
@@ -1925,6 +1923,23 @@ int mstnodequest::GetMsgBuf(char * buf)
     boost::archive::binary_oarchive oa(os);
     oa << *this;
     std::string strReq = os.str();
+    int buflength = strReq.length();
+    if(buflength + mstnd_iReqMsgHeadLen > mstnd_iReqBufLen) {
+        LogPrintf("mstnodequest::GetMsgBuf: buff size error, string length is %d, need to increase buff size", buflength + mstnd_iReqMsgHeadLen);
+        return 0;
+    }
+    unsigned int n = HNSwapl(buflength);
+    memcpy(buf, &n, mstnd_iReqMsgHeadLen);
+    memcpy(buf + mstnd_iReqMsgHeadLen, strReq.c_str(), buflength);
+    buflength += mstnd_iReqMsgHeadLen;
+    return buflength;
+}
+
+int mstnodequest::GetMsgBufNew(char * buf)
+{
+    CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+    ss << *this;
+    std::string strReq = ss.str();
     int buflength = strReq.length();
     if(buflength + mstnd_iReqMsgHeadLen > mstnd_iReqBufLen) {
         LogPrintf("mstnodequest::GetMsgBuf: buff size error, string length is %d, need to increase buff size", buflength + mstnd_iReqMsgHeadLen);
@@ -2263,9 +2278,10 @@ bool CMasternodeCenter::CheckLicensePeriod(CMasternode &mn)
 {
     if(!IsUse())
         return true;
-    
-    if(mn.certifyPeriod <= 0 || mn.certifyPeriod - LIMIT_MASTERNODE_LICENSE < GetTime())
-        return RequestLicense(mn);
+    if(activeMasternode.vin.prevout.hash == mn.vin.prevout.hash && activeMasternode.vin.prevout.n == mn.vin.prevout.n) {
+        if(mn.certifyPeriod <= 0 || mn.certifyPeriod - LIMIT_MASTERNODE_LICENSE < GetTime())
+            RequestLicense(mn);
+    }
     return mn.certifyPeriod > GetTime();
 }
 

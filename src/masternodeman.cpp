@@ -708,7 +708,7 @@ std::vector<std::pair<int, CMasternode*>> CMasternodeMan::GetNextMasternodeListF
         if(mnpayments.IsScheduled(mn, pCurrentBlockIndex->nHeight)) continue;
 
         //it's too new, wait for a cycle
-        if(fFilterSigTime && mn.sigTime + (nMnCount*2.6*60) > GetAdjustedTime()) continue;
+        if(mn.sigTime + (nMnCount*2.6*60) > GetAdjustedTime()) continue;
 
         //make sure it has at least as many confirmations as there are masternodes
         if(mn.GetCollateralAge() < nMnCount) continue;

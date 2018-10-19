@@ -715,6 +715,7 @@ std::vector<std::pair<int, CMasternode*>> CMasternodeMan::GetNextMasternodeListF
 
         vecMasternodeLastPaid.push_back(std::make_pair(mn.GetLastPaidBlock(), &mn));
     }
+    sort(vecMasternodeLastPaid.begin(), vecMasternodeLastPaid.end(), CompareLastPaidBlock());
     return vecMasternodeLastPaid;
 }
 

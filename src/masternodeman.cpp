@@ -685,54 +685,6 @@ CMasternode* CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeight
     return pBestMasternode;
 }
 
-bool CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeight, std::vector<std::pair<int, CMasternode*>>& vecMasternodeLastPaid)
-{
-    // Need LOCK2 here to ensure consistent locking order because the GetBlockHash call below locks cs_main
-    LOCK2(cs_main,cs);
-
-    bool fFilterSigTime = true;
-    int nCount = 0;
-
-    /*
-        Make a vector with all of the last paid times
-    */
-
-    int nMnCount = CountEnabled();
-    BOOST_FOREACH(CMasternode &mn, vMasternodes)
-    {
-        if(!mn.IsValidForPayment()) continue;
-
-        // //check protocol version
-        if(mn.nProtocolVersion < mnpayments.GetMinMasternodePaymentsProto()) continue;
-
-        //it's in the list (up to 8 entries ahead of current block to allow propagation) -- so let's skip it
-        if(mnpayments.IsScheduled(mn, nBlockHeight)) continue;
-
-        //it's too new, wait for a cycle
-        if(fFilterSigTime && mn.sigTime + (nMnCount*2.6*60) > GetAdjustedTime()) continue;
-
-        //make sure it has at least as many confirmations as there are masternodes
-        if(mn.GetCollateralAge() < nMnCount) continue;
-
-        vecMasternodeLastPaid.push_back(std::make_pair(mn.GetLastPaidBlock(), &mn));
-    }
-
-    nCount = (int)vecMasternodeLastPaid.size();
-
-    //when the network is in the process of upgrading, don't penalize nodes that recently restarted
-    if(fFilterSigTime && nCount < nMnCount/3) return GetNextMasternodeInQueueForPayment(nBlockHeight, false, nCount);
-
-    // Sort them low to high
-    sort(vecMasternodeLastPaid.begin(), vecMasternodeLastPaid.end(), CompareLastPaidBlock());
-
-    int nTenthNetwork = nMnCount/10;
-    std::vector<std::pair<int, CMasternode*>>::iterator it = vecMasternodeLastPaid.begin() + nTenthNetwork;
-    vecMasternodeLastPaid.erase(it, vecMasternodeLastPaid.end());
-    
-    return true;
-}
-
-
 CMasternode* CMasternodeMan::FindRandomNotInVec(const std::vector<CTxIn> &vecToExclude, int nProtocolVersion)
 {
     LOCK(cs);
@@ -1781,39 +1733,6 @@ void CMasternodeMan::UpdatedBlockTip(const CBlockIndex *pindex)
     }
 }
 
-void CMasternodeMan::ProcessPayee(const CTransaction & tx, int nHeight, bool bAdd)
-{
-    CAmount nMasternodePayment = GetMasternodePayment(nHeight);
-    
-    BOOST_FOREACH(CTxOut txout, tx.vout)
-    {
-        if(nMasternodePayment == txout.nValue) {
-            CMasternode * ptr = Find(txout.scriptPubKey);
-            if(ptr != NULL) {
-				if(mapMasternodePayee.count(ptr->vin) == 0) {
-					std::vector<int> vecH;
-					vecH.push_back(nHeight);
-					mapMasternodePayee.insert(std::make_pair(ptr->vin, vecH));
-				} else {
-                    if(bAdd) {
-                	    mapMasternodePayee[ptr->vin].push_back(nHeight);
-                    } else {
-                        for(std::vector<int>::iterator it = mapMasternodePayee[ptr->vin].begin(); it != mapMasternodePayee[ptr->vin].end(); )
-                        {
-                            if(*it == nHeight) {
-                                it = mapMasternodePayee[ptr->vin].erase(it);
-                            } else {
-                                it++;
-                            }
-                        }
-                   }
-				}
-            }
-            return;
-        }
-    }
-}
-
 void CMasternodeMan::NotifyMasternodeUpdates()
 {
     // Avoid double locking
@@ -1957,7 +1876,7 @@ bool CMasternodeCenter::InitCenter(std::string strError)
     if (!sporkManager.IsSporkActive(SPORK_18_REQUIRE_MASTER_VERIFY_FLAG)) return true;
 
     std::vector<CNetAddr> vIPs;
-    std::string sCenterDomain = GetArg("centerdomain", Params().ucenter());
+    std::string sCenterDomain = GetArg("-centerdomain", Params().ucenter());
 
     if (LookupHost(sCenterDomain.c_str(), vIPs)) {
         if (vIPs.empty()) {

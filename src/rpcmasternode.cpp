@@ -93,20 +93,6 @@ bool cmp_by_value(const WINPAIR& lhs, const WINPAIR& rhs)
 {
 	return lhs.second == rhs.second ? lhs.first < rhs.first : lhs.second > rhs.second;
 }
-typedef std::pair<std::string, std::pair<int64_t, int>> ACTPAIR;
-bool cmp1_by_value(const ACTPAIR& lhs, const ACTPAIR& rhs)
-{
-	return lhs.second.first == rhs.second.first ? lhs.first < rhs.first : lhs.second.first > rhs.second.first;
-}
-typedef std::pair<CTxIn, std::vector<int>> PAYPAIR;
-bool cmp_by_size(const PAYPAIR& lhs, const PAYPAIR& rhs)
-{
-    return lhs.second.size() == rhs.second.size() ? (lhs.second.size() == 0 ?  false : lhs.second.back() > rhs.second.back()) : lhs.second.size() > rhs.second.size();
-}
-bool cmp_by_back(const PAYPAIR& lhs, const PAYPAIR& rhs)
-{
-    return (lhs.second.size() == 0 || rhs.second.size() == 0) ? lhs.second.size() > rhs.second.size() : lhs.second.back() > rhs.second.back();
-}
 UniValue masternode(const UniValue& params, bool fHelp)
 {
     std::string strCommand;
@@ -121,8 +107,7 @@ UniValue masternode(const UniValue& params, bool fHelp)
         (strCommand != "start" && strCommand != "start-alias" && strCommand != "start-all" && strCommand != "start-missing" &&
          strCommand != "start-disabled" && strCommand != "list" && strCommand != "list-conf" && strCommand != "count" &&
          strCommand != "debug" && strCommand != "current" && strCommand != "winner" && strCommand != "winners" && strCommand != "genkey" &&
-         strCommand != "connect" && strCommand != "outputs" && strCommand != "status"  && strCommand != "license" &&
-         strCommand != "lives" && strCommand != "payee" && strCommand != "queue"))
+         strCommand != "connect" && strCommand != "outputs" && strCommand != "status"  && strCommand != "license"))
             throw std::runtime_error(
                 "masternode \"command\"... ( \"passphrase\" )\n"
                 "Set of commands to execute masternode related actions\n"
@@ -536,147 +521,6 @@ UniValue masternode(const UniValue& params, bool fHelp)
         return mnObj;
     }
 
-    if (strCommand == "lives")
-    {
-        int nHeight;
-        {
-            LOCK(cs_main);
-            CBlockIndex* pindex = chainActive.Tip();
-            if(!pindex) return NullUniValue;
-
-            nHeight = pindex->nHeight;
-        }
-        UniValue obj(UniValue::VOBJ);
-        std::map<std::string, int> mapStatus;
-        std::map<std::string, std::pair<int64_t, int>> mapActive;
-        for(int i = 57600; i < nHeight + 10; i++)
-        {
-            std::string strPayment = GetRequiredPaymentsString(i, false);
-            if(mapStatus.count(strPayment) == 0)
-                mapStatus.insert(std::pair<std::string, int>(strPayment, 1));
-            else
-                mapStatus[strPayment]++;
-        }
-        std::vector<CMasternode> vMasternodes = mnodeman.GetFullMasternodeVector();
-        BOOST_FOREACH(CMasternode& mn, vMasternodes)
-        {
-            std::string strOutpoint = mn.vin.prevout.ToStringShort();
-            int64_t nactive = (int64_t)(mn.lastPing.sigTime - mn.sigTime);
-            mapActive.insert(std::make_pair(strOutpoint, std::make_pair(nactive, mapStatus[CBitcoinAddress(mn.GetPayeeDestination()).ToString()])));
-        }
-        std::vector<ACTPAIR>vecActive(mapActive.begin(), mapActive.end());
-        std::sort(vecActive.begin(), vecActive.end(), cmp1_by_value);
-        for(auto& actinfo : vecActive)
-        {
-            obj.push_back(Pair(actinfo.first, strprintf("%ld +++ %d", actinfo.second.first, actinfo.second.second)));
-        }
-        obj.push_back(Pair("Total", vecActive.size()));
-        return obj;
-    }
-
-    if(strCommand == "payee")
-    {
-        std::string scmd;
-        bool bBack = false;
-        bool bDetail = false;
-        if (params.size() == 2) {
-            scmd = params[1].get_str();
-            if(scmd == "reset") {
-                int nHeight;
-                {
-                    LOCK(cs_main);
-                    CBlockIndex* pindex = chainActive.Tip();
-                    if(!pindex) return NullUniValue;
-
-                    nHeight = pindex->nHeight;
-                }
-                mnodeman.mapMasternodePayee.clear();
-                for(int i = 57600; i < nHeight; i++)
-                {
-                    CBlock block;
-                    CBlockIndex* pblockindex = chainActive[i];
-                    if(!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
-                        continue;
-                    mnodeman.ProcessPayee(block.vtx[0], i);
-                }
-            } else if(scmd == "block") {
-                bBack = true;;
-            } else if(scmd == "status") {
-                bDetail = true;
-            }
-        }
-        UniValue obj(UniValue::VOBJ);
-        int nlastPay = 0;
-        std::vector<PAYPAIR> vecPayee(mnodeman.mapMasternodePayee.begin(), mnodeman.mapMasternodePayee.end());
-        bBack ? std::sort(vecPayee.begin(), vecPayee.end(), cmp_by_back) : std::sort(vecPayee.begin(), vecPayee.end(), cmp_by_size);
-        for(auto mninfo : vecPayee)
-        {
-            std::ostringstream streamInfo;
-            std::ostringstream streamPayInfo;
-            bool bstart = true;
-            nlastPay = 0;
-            CMasternode * pmn = mnodeman.Find(mninfo.first);
-            if(pmn == NULL)
-                continue;
-            streamInfo << std::setw(20) << pmn->GetStatus() << " "
-                        << std::setw(10) << (int64_t)(pmn->lastPing.sigTime - pmn->sigTime) << " "
-                        << std::setw(5) << mninfo.second.size();
-            for(auto n : mninfo.second)
-            {
-                if(bstart) {
-                    streamInfo << "(";
-                    bstart = false;
-                } else {
-                    streamInfo << ", ";
-                    streamPayInfo << ", ";
-                }
-                streamInfo << n;
-                streamPayInfo << n;
-                if(nlastPay == 0)
-                    nlastPay = n;
-                else {
-                    streamPayInfo << "-" << (n - nlastPay);
-                    nlastPay = n;
-                }
-            }
-            if(!bstart)
-                streamInfo << ")";
-            if(!bDetail)
-                obj.push_back(Pair(mninfo.first.prevout.ToStringShort(), streamInfo.str()));
-            else
-                obj.push_back(Pair(CBitcoinAddress(pmn->GetPayeeDestination()).ToString(), streamPayInfo.str()));
-        }
-        return obj;
-    }
-
-    if(strCommand == "queue")
-    {
-        int nHeight;
-        {
-            LOCK(cs_main);
-            CBlockIndex* pindex = chainActive.Tip();
-            if(!pindex) return NullUniValue;
-
-            nHeight = pindex->nHeight;
-        }
-        if (params.size() == 2) {
-            nHeight += std::stoi(params[1].get_str());
-        }
-        UniValue obj(UniValue::VOBJ);
-        std::vector<std::pair<int, CMasternode*>> vecMNQueue;
-        mnodeman.GetNextMasternodeInQueueForPayment(nHeight, vecMNQueue);
-        int nCount = 1;
-        for(auto n : vecMNQueue)
-        {
-            std::ostringstream streamInfo;
-            streamInfo << std::setw(10) << n.first << "-<" << n.second->vin.ToString() << ">, " << CBitcoinAddress(n.second->GetPayeeDestination()).ToString();
-            obj.push_back(Pair(to_string(nCount), streamInfo.str()));
-            nCount++;
-        }
-        obj.push_back(Pair("total", vecMNQueue.size()));
-        return obj;
-    }
-
     return NullUniValue;
 }
 
@@ -884,7 +728,7 @@ UniValue masternodebroadcast(const UniValue& params, bool fHelp)
         return statusObj;
 
     }
-
+// manual create mnb message and broadcast
     if (strCommand == "create-all")
     {
         // wait for reindex and/or import to finish

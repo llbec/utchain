@@ -337,10 +337,7 @@ public:
     {
         return !(a.vin == b.vin);
     }
-    friend bool operator<(const CMasternode& a, const CMasternode& b)
-    {
-        return a.vin < b.vin;
-    }
+
 };
 
 

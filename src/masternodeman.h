@@ -169,8 +169,7 @@ public:
     std::map<uint256, CMasternodeVerification> mapSeenMasternodeVerification;
     // keep track of dsq count to prevent masternodes from gaming privsend queue
     int64_t nDsqCount;
-    // Keep track of masternode payee
-    std::map<CTxIn, std::vector<int>> mapMasternodePayee;
+
 
     ADD_SERIALIZE_METHODS;
 
@@ -198,7 +197,6 @@ public:
         READWRITE(mapSeenMasternodeBroadcast);
         READWRITE(mapSeenMasternodePing);
         READWRITE(indexMasternodes);
-        READWRITE(mapMasternodePayee);
         if(ser_action.ForRead() && (strVersion != SERIALIZATION_VERSION_STRING)) {
             Clear();
         }
@@ -300,8 +298,6 @@ public:
     /// Same as above but use current block height
     CMasternode* GetNextMasternodeInQueueForPayment(bool fFilterSigTime, int& nCount);
 
-    bool GetNextMasternodeInQueueForPayment(int nBlockHeight, std::vector<std::pair<int, CMasternode*>>& vecMasternodeLastPaid);
-
     /// Find a random entry
     CMasternode* FindRandomNotInVec(const std::vector<CTxIn> &vecToExclude, int nProtocolVersion = -1);
 
@@ -367,8 +363,6 @@ public:
     void SetMasternodeLastPing(const CTxIn& vin, const CMasternodePing& mnp);
 
     void UpdatedBlockTip(const CBlockIndex *pindex);
-
-    void ProcessPayee(const CTransaction& tx, int nHeight, bool bAdd = true);
 
     /**
      * Called to notify CGovernanceManager that the masternode index has been updated.

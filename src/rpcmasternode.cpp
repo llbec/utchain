@@ -561,11 +561,14 @@ UniValue masternode(const UniValue& params, bool fHelp)
         std::vector<std::pair<int, CMasternode*>> vecQueue;
         UniValue mnObj(UniValue::VOBJ);
         vecQueue = mnodeman.GetNextMasternodeListForPayment();
+        int ncount = 0;
+        int nWin = mnodeman.CountEnabled()/10;
         for(auto t:vecQueue)
         {
             mnObj.push_back(Pair(to_string(t.first), t.second->vin.prevout.ToStringShort()));
+            ncount++;
+            if(ncount == nWin) mnObj.push_back(Pair("------", to_string(nWin)));
         }
-        mnObj.push_back(Pair("top number:", to_string(mnodeman.CountEnabled()/10)));
         mnObj.push_back(Pair("total number:", to_string(vecQueue.size())));
         return mnObj;
     }

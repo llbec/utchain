@@ -538,13 +538,13 @@ UniValue masternode(const UniValue& params, bool fHelp)
                 txnouttype type;
                 std::vector<CTxDestination> addresses;
                 int nRequired;
-                if (ExtractDestinations(coin.scriptPubKey, type, addresses, nRequired)) {
+                if (ExtractDestinations(payee.GetPayee(), type, addresses, nRequired)) {
                     payeeAddress.Set(addresses[0]);
                     tObj.push_back(payeeAddress.ToString());
                 } else tObj.push_back("Unknow");
 
                 UniValue voteObj(UniValue::VARR);
-                for(auot hash : vecVoteHashes)
+                for(auto hash : vecVoteHashes)
                 {
                     voteObj.push_back(mnpayments.mapMasternodePaymentVotes[hash].vinMasternode.prevout.ToStringShort());
                 }

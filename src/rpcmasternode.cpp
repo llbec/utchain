@@ -569,6 +569,7 @@ UniValue masternode(const UniValue& params, bool fHelp)
             ncount++;
             if(ncount == nWin) mnObj.push_back(Pair("------", to_string(nWin)));
         }
+        mnObj.push_back(Pair("top number:", to_string(nWin)));
         mnObj.push_back(Pair("total number:", to_string(vecQueue.size())));
         return mnObj;
     }

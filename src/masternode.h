@@ -309,7 +309,7 @@ public:
 
     int GetCollateralAge();
 
-    int GetLastPaidTime() { return nTimeLastPaid; }
+    int64_t GetLastPaidTime() { return nTimeLastPaid; }
     int GetLastPaidBlock() { return nBlockLastPaid; }
     void UpdateLastPaid(const CBlockIndex *pindex, int nMaxBlocksToScanBack);
 

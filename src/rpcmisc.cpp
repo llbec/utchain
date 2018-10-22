@@ -798,7 +798,7 @@ UniValue collectaddrutxos(const UniValue& params, bool fHelp)
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Unknown address type");
         }
 
-        StringFormat::Append(strVin, "{\"txid\":\"%s\",\"vout\":%d}", it->first.txhash.GetHex(), (int)it->first.index));
+        StringFormat::Append(strVin, "{\"txid\":\"%s\",\"vout\":%d}", it->first.txhash.GetHex(), (int)it->first.index);
         balance += it->second.satoshis;
         ncount++;
     }

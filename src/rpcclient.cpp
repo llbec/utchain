@@ -129,6 +129,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getaddressbalance", 0},
     { "getaddressdeltas", 0},
     { "getaddressutxos", 0},
+    { "collectaddrutxos", 0},
     { "getaddressmempool", 0},
 };
 

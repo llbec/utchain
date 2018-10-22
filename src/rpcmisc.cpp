@@ -773,6 +773,7 @@ UniValue collectaddrutxos(const UniValue& params, bool fHelp)
 
     std::vector<std::pair<uint160, int> > addresses;
     CAmount balance = 0;
+    int ncount =0;
 
     if (!getAddressesFromParams(params, addresses)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
@@ -800,11 +801,14 @@ UniValue collectaddrutxos(const UniValue& params, bool fHelp)
         output.push_back(Pair("txid", it->first.txhash.GetHex()));
         output.push_back(Pair("vout", (int)it->first.index));
         balance += it->second.satoshis;
+        ncount++;
         result.push_back(output);
     }
 
     UniValue oTotal(UniValue::VOBJ);
     oTotal.push_back(Pair("balance", ValueFromAmount(balance)));
+    oTotal.push_back(Pair("count", ncount));
+    result.push_back(oTotal);
 
     return result;
 }

@@ -741,11 +741,11 @@ UniValue getaddressutxos(const UniValue& params, bool fHelp)
     return result;
 }
 
-UniValue collectaddrutxos(const UniValue& params, bool fHelp)
+UniValue getaddressvin(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() != 1)
         throw runtime_error(
-            "collectaddrutxos\n"
+            "getaddressvin\n"
             "\nReturns all unspent outputs for an address (requires addressindex to be enabled).\n"
             "\nArguments:\n"
             "{\n"
@@ -756,19 +756,14 @@ UniValue collectaddrutxos(const UniValue& params, bool fHelp)
             "    ]\n"
             "}\n"
             "\nResult\n"
-            "[\n"
-            "  {\n"
-            "    \"address\"  (string) The address base58check encoded\n"
-            "    \"txid\"  (string) The output txid\n"
-            "    \"height\"  (number) The block height\n"
-            "    \"outputIndex\"  (number) The output index\n"
-            "    \"script\"  (strin) The script hex encoded\n"
-            "    \"satoshis\"  (number) The number of satoshis of the output\n"
-            "  }\n"
-            "]\n"
+            "{\n"
+            "  \"Vin\"  (string) All utxos collections of the address\n"
+            "  \"balance\"  (number) The number of satoshis of the collections\n"
+            "  \"count\"  (number) The number of the collections\n"
+            "}\n"
             "\nExamples:\n"
-            + HelpExampleCli("collectaddrutxos", "'{\"addresses\": [\"URZFLwbfLeFeiZ2cEEcgcgBggBZBvuMkak\"]}'")
-            + HelpExampleRpc("collectaddrutxos", "{\"addresses\": [\"URZFLwbfLeFeiZ2cEEcgcgBggBZBvuMkak\"]}")
+            + HelpExampleCli("getaddressvin", "'{\"addresses\": [\"URZFLwbfLeFeiZ2cEEcgcgBggBZBvuMkak\"]}'")
+            + HelpExampleRpc("getaddressvin", "{\"addresses\": [\"URZFLwbfLeFeiZ2cEEcgcgBggBZBvuMkak\"]}")
         );
 
     std::vector<std::pair<uint160, int> > addresses;

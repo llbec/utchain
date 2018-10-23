@@ -789,7 +789,7 @@ UniValue collectaddrutxos(const UniValue& params, bool fHelp)
 
     std::sort(unspentOutputs.begin(), unspentOutputs.end(), heightSort);
 
-    UniValue result(UniValue::VARR);
+    //UniValue result(UniValue::VARR);
     std::string strVin = "'[";
 
     for (std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> >::const_iterator it=unspentOutputs.begin(); it!=unspentOutputs.end(); it++) {
@@ -798,7 +798,7 @@ UniValue collectaddrutxos(const UniValue& params, bool fHelp)
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Unknown address type");
         }
 
-        StringFormat::Append(strVin, "{\"txid\":\"%s\",\"vout\":%d}", it->first.txhash.GetHex(), (int)it->first.index);
+        StringFormat::Append(strVin, "{\"txid\":\"%s\",\"vout\":%d}", it->first.txhash.GetHex().c_str(), (int)it->first.index);
         balance += it->second.satoshis;
         ncount++;
     }
@@ -808,9 +808,9 @@ UniValue collectaddrutxos(const UniValue& params, bool fHelp)
     oTotal.push_back(Pair("Vin", strVin));
     oTotal.push_back(Pair("balance", ValueFromAmount(balance)));
     oTotal.push_back(Pair("count", ncount));
-    result.push_back(oTotal);
+    //result.push_back(oTotal);
 
-    return result;
+    return oTotal;
 }
 
 

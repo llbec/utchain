@@ -203,7 +203,7 @@ public:
         consensus.nMasternodePaymentsStartBlock = 57600;                // not true, but it's ok as long as it's less then nMasternodePaymentsIncreaseBlock
         //consensus.nMasternodePaymentsIncreaseBlock = 576 * 365;         //576 * 365
         consensus.nMasternodePaymentsIncreasePeriod = 576 * 365;        // 17280 - actual historical value
-        consensus.nInstantSendKeepLock = 24;
+        consensus.nInstantSendKeepLock = 24;				//number of blocks for instantsend lock
         consensus.nBudgetPaymentsStartBlock = 2;                        // actual historical value
         consensus.nBudgetPaymentsCycleBlocks = 576 * 30;                // ~(60*24*30)/2.6, actual number of blocks per month is 200700 / 12 = 16725
         consensus.nBudgetPaymentsWindowBlocks = 100;
@@ -279,14 +279,14 @@ public:
         vFixedSeeds.clear();
         vSeeds.clear();		
         vSeeds.push_back(CDNSSeedData("ulord.one", "seed1.ulord.one"));
-	vSeeds.push_back(CDNSSeedData("ulord.one", "seed2.ulord.one"));  
-	vSeeds.push_back(CDNSSeedData("ulord.one", "seed3.ulord.one"));
-	vSeeds.push_back(CDNSSeedData("ulord.one", "seed4.ulord.one"));
-	vSeeds.push_back(CDNSSeedData("ulord.one", "seed5.ulord.one"));
-	vSeeds.push_back(CDNSSeedData("ulord.one", "seed6.ulord.one"));
-	vSeeds.push_back(CDNSSeedData("ulord.one", "seed7.ulord.one"));
-	    
-	uCenter = "ucenter.ulord.one";                           // for masternode verify
+        vSeeds.push_back(CDNSSeedData("ulord.one", "seed2.ulord.one"));  
+        vSeeds.push_back(CDNSSeedData("ulord.one", "seed3.ulord.one"));
+        vSeeds.push_back(CDNSSeedData("ulord.one", "seed4.ulord.one"));
+        vSeeds.push_back(CDNSSeedData("ulord.one", "seed5.ulord.one"));
+        vSeeds.push_back(CDNSSeedData("ulord.one", "seed6.ulord.one"));
+        vSeeds.push_back(CDNSSeedData("ulord.one", "seed7.ulord.one"));
+            
+        uCenter = "ucenter.ulord.one";                           // for masternode verify
 
         fMiningRequiresPeers = true;
         fDefaultConsistencyChecks = false;
@@ -300,10 +300,10 @@ public:
 
         checkpointData = (CCheckpointData) {
             boost::assign::map_list_of
-            (   0, uint256S("0x0000079b37c3c290dc81e95bca28aa7df5636145ae35ebee86e10cc3cce96fb2"))
-            (  10, uint256S("0x0000021d155df9c31a41f102ea2490a6706f58cc6a5bfac24723cec75804f82a"))
-            ( 100, uint256S("0x000001b236b617573c507362b517d721235efe9371aa9f4e9eaee6517e5af6a2"))
-	    ( 1000, uint256S("0x0000000084e4cd2c850c88f0978c2b46b08e9f9fefceb89f023e5274ae497b8a")),
+            (    0, uint256S("0x0000079b37c3c290dc81e95bca28aa7df5636145ae35ebee86e10cc3cce96fb2"))
+            (   10, uint256S("0x0000021d155df9c31a41f102ea2490a6706f58cc6a5bfac24723cec75804f82a"))
+            (  100, uint256S("0x000001b236b617573c507362b517d721235efe9371aa9f4e9eaee6517e5af6a2"))
+	        ( 1000, uint256S("0x0000000084e4cd2c850c88f0978c2b46b08e9f9fefceb89f023e5274ae497b8a")),
             1526704298,                       // * UNIX timestamp of last checkpoint block
             0,                                // * total number of transactions between genesis and last checkpoint
                                               //   (the tx=... number in the SetBestChain debug.log lines)

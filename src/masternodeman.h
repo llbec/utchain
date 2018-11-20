@@ -213,9 +213,9 @@ public:
     void AskForMN(CNode *pnode, const CTxIn &vin);
     void AskForMnb(CNode *pnode, const uint256 &hash);
 
-	///for test
-	void SetRegisteredCheckInterval(int time);
-
+    ///for test
+    void SetRegisteredCheckInterval(int time);
+    bool PoSeBan(const COutPoint &outpoint);
     /// Check all Masternodes
     void Check();
 
@@ -240,6 +240,7 @@ public:
     /// Find an entry
     CMasternode* Find(const CScript &payee);
     CMasternode* Find(const CTxIn& vin);
+    CMasternode* Find(const COutPoint& outpoint);
     CMasternode* Find(const CPubKey& pubKeyMasternode);
 
     /// Versions of Find that are safe to use from outside the class
@@ -299,6 +300,8 @@ public:
     CMasternode* GetNextMasternodeInQueueForPayment(int nBlockHeight, bool fFilterSigTime, int& nCount);
     /// Same as above but use current block height
     CMasternode* GetNextMasternodeInQueueForPayment(bool fFilterSigTime, int& nCount);
+    /// Get the list that is next to be paid
+    std::vector<std::pair<int, CMasternode*>> GetNextMasternodeListForPayment();
 
     bool GetNextMasternodeInQueueForPayment(int nBlockHeight, std::vector<std::pair<int, CMasternode*>>& vecMasternodeLastPaid);
 
@@ -410,11 +413,11 @@ public:
     mstnodequest(){}
     int        _msgversion; 	
     int        _questtype;
-	int64_t    _timeStamps;
+    int64_t    _timeStamps;
     //std::string     _verfyflag;
     //std::string     _masteraddr;
     std::string     _txid;
-	unsigned int    _voutid;
+    unsigned int    _voutid;
 
     /*keep this serialize function for old version*/
     friend class boost::serialization::access;
@@ -432,7 +435,7 @@ public:
     }  
     int GetVersion() const {return _msgversion;}
     int GetQuestType() const {return _questtype;}
-	int GetMsgBuf(char * buf);
+    int GetMsgBuf(char * buf);
     int GetMsgBufNew(char * buf);
 
     /*serialize without boost*/
@@ -441,10 +444,10 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(_msgversion);
-		READWRITE(_timeStamps);
+        READWRITE(_timeStamps);
         READWRITE(_questtype);
         READWRITE(_txid);
-		READWRITE(_voutid);
+        READWRITE(_voutid);
     }
 };
 
@@ -484,7 +487,7 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(_msgversion);
-		READWRITE(_num);
+        READWRITE(_num);
         READWRITE(_nodetype);
     }
 };
@@ -513,7 +516,7 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(_keyversion);
-		READWRITE(_key);
+        READWRITE(_key);
     }
 };
 
@@ -564,10 +567,10 @@ private:
 public:  
     CMstNodeData():_version(0), _txid(""), _voutid(0), _licversion(1){}
     CMstNodeData(int version, std::string txid, unsigned int voutid):_version(version), _txid(txid), _voutid(voutid), _licversion(1){}
-	CMstNodeData(const CMasternode & mn);
-	CMstNodeData(const CMasternodePing & mn);
+    CMstNodeData(const CMasternode & mn);
+    CMstNodeData(const CMasternodePing & mn);
 
-	uint256 GetLicenseWord();
+    uint256 GetLicenseWord();
     bool VerifyLicense();
     bool IsNeedUpdateLicense();
 
@@ -575,12 +578,12 @@ public:
     {
         _version   = b._version;
         _txid      = b._txid;
-		_voutid    = b._voutid;
+        _voutid    = b._voutid;
         _privkey   = b._privkey;
         _status    = b._status;
         _licversion   = b._licversion;
-		_licperiod = b._licperiod;
-		_licence   = b._licence;
+        _licperiod = b._licperiod;
+        _licence   = b._licence;
         _nodeperiod= b._nodeperiod;
         _pubkey    = b._pubkey;
         return * this;
@@ -605,13 +608,13 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(_version);
-		READWRITE(_txid);
+        READWRITE(_txid);
         READWRITE(_voutid);
         READWRITE(_privkey);
-		READWRITE(_status);
+        READWRITE(_status);
         READWRITE(_licversion);
         READWRITE(_licperiod);
-		READWRITE(_licence);
+        READWRITE(_licence);
         READWRITE(_nodeperiod);
     }
 };  

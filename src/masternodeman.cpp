@@ -106,52 +106,52 @@ void CMasternodeIndex::RebuildIndex()
 
 void showbuf(const char * buf, int len)
 {
-	int i = 0, count = 0;
+    int i = 0, count = 0;
 	
-	for (i = 0; i < len; ++i)
-	{
-		printf("%02x ", (uint8_t)buf[i]);
-		count++;
-		if(count % 8 == 0)
-			printf("    ");
-		if(count % 16 == 0)
-			printf("\n");
-	}
-	printf("\n");
+    for (i = 0; i < len; ++i)
+    {
+        printf("%02x ", (uint8_t)buf[i]);
+        count++;
+        if(count % 8 == 0)
+            printf("    ");
+        if(count % 16 == 0)
+            printf("\n");
+    }
+    printf("\n");
 }
 
 bool SendRequestNsg(SOCKET sock, CMasternode &mn, mstnodequest &mstquest)
 {
-	std::string strReq;
-	char cbuf[mstnd_iReqBufLen];
-	memset(cbuf,0,sizeof(cbuf));
-	int buflength = 0;
+    std::string strReq;
+    char cbuf[mstnd_iReqBufLen];
+    memset(cbuf,0,sizeof(cbuf));
+    int buflength = 0;
 	
-	mstquest._timeStamps = GetTime();
-	mstquest._txid = mn.vin.prevout.hash.GetHex();
-	mstquest._voutid = mn.vin.prevout.n;
+    mstquest._timeStamps = GetTime();
+    mstquest._txid = mn.vin.prevout.hash.GetHex();
+    mstquest._voutid = mn.vin.prevout.n;
 	
-	//std::cout << "check masternode addr " << mstquest._masteraddr << std::endl;
+    //std::cout << "check masternode addr " << mstquest._masteraddr << std::endl;
 	
     std::ostringstream os;
     boost::archive::binary_oarchive oa(os);
     oa<<mstquest;
-	strReq = os.str();
+    strReq = os.str();
 	
-	buflength = strReq.length();
-	if(buflength + mstnd_iReqMsgHeadLen > mstnd_iReqBufLen)
-		return error("SendRequestNsg : buff size error, string length is %d, need to increase buff size", buflength + mstnd_iReqMsgHeadLen);
-	unsigned int n = HNSwapl(buflength);
-	memcpy(cbuf, &n, mstnd_iReqMsgHeadLen);
-	memcpy(cbuf + mstnd_iReqMsgHeadLen, strReq.c_str(), buflength);
-	buflength += mstnd_iReqMsgHeadLen;
+    buflength = strReq.length();
+    if(buflength + mstnd_iReqMsgHeadLen > mstnd_iReqBufLen)
+        return error("SendRequestNsg : buff size error, string length is %d, need to increase buff size", buflength + mstnd_iReqMsgHeadLen);
+    unsigned int n = HNSwapl(buflength);
+    memcpy(cbuf, &n, mstnd_iReqMsgHeadLen);
+    memcpy(cbuf + mstnd_iReqMsgHeadLen, strReq.c_str(), buflength);
+    buflength += mstnd_iReqMsgHeadLen;
 
-	//showbuf(cbuf, buflength);
+    //showbuf(cbuf, buflength);
 		
-	int nBytes = send(sock, cbuf, buflength, 0);
-	if(nBytes != buflength)
-		return false;
-	return true;
+    int nBytes = send(sock, cbuf, buflength, 0);
+    if(nBytes != buflength)
+        return false;
+    return true;
 }
 
 CMasternodeMan::CMasternodeMan()
@@ -236,6 +236,17 @@ void CMasternodeMan::SetRegisteredCheckInterval(int time)
     }
 }
 
+bool CMasternodeMan::PoSeBan(const COutPoint &outpoint)
+{
+    LOCK(cs);
+    CMasternode* pmn = Find(outpoint);
+    if (!pmn) {
+        return false;
+    }
+    pmn->PoSeBan();
+
+    return true;
+}
 
 void CMasternodeMan::Check()
 {
@@ -542,6 +553,18 @@ CMasternode* CMasternodeMan::Find(const CTxIn &vin)
     return NULL;
 }
 
+CMasternode* CMasternodeMan::Find(const COutPoint& outpoint)
+{
+	LOCK(cs);
+	BOOST_FOREACH(CMasternode& mn, vMasternodes)
+	{
+		if(mn.vin.prevout == outpoint)
+			return &mn;
+	}
+	return NULL;
+}
+
+
 CMasternode* CMasternodeMan::Find(const CPubKey &pubKeyMasternode)
 {
     LOCK(cs);
@@ -685,20 +708,17 @@ CMasternode* CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeight
     return pBestMasternode;
 }
 
-bool CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeight, std::vector<std::pair<int, CMasternode*>>& vecMasternodeLastPaid)
+std::vector<std::pair<int, CMasternode*>> CMasternodeMan::GetNextMasternodeListForPayment()
 {
     // Need LOCK2 here to ensure consistent locking order because the GetBlockHash call below locks cs_main
     LOCK2(cs_main,cs);
 
-    bool fFilterSigTime = true;
-    int nCount = 0;
-
-    CMasternode *pBestMasternode = NULL;
+    std::vector<std::pair<int, CMasternode*>> vecMasternodeLastPaid;
+    if(!pCurrentBlockIndex) return vecMasternodeLastPaid;
 
     /*
         Make a vector with all of the last paid times
     */
-
     int nMnCount = CountEnabled();
     BOOST_FOREACH(CMasternode &mn, vMasternodes)
     {
@@ -708,32 +728,19 @@ bool CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeight, std::v
         if(mn.nProtocolVersion < mnpayments.GetMinMasternodePaymentsProto()) continue;
 
         //it's in the list (up to 8 entries ahead of current block to allow propagation) -- so let's skip it
-        if(mnpayments.IsScheduled(mn, nBlockHeight)) continue;
+        if(mnpayments.IsScheduled(mn, pCurrentBlockIndex->nHeight)) continue;
 
         //it's too new, wait for a cycle
-        if(fFilterSigTime && mn.sigTime + (nMnCount*2.6*60) > GetAdjustedTime()) continue;
+        if(mn.sigTime + (nMnCount*2.6*60) > GetAdjustedTime()) continue;
 
         //make sure it has at least as many confirmations as there are masternodes
         if(mn.GetCollateralAge() < nMnCount) continue;
 
         vecMasternodeLastPaid.push_back(std::make_pair(mn.GetLastPaidBlock(), &mn));
     }
-
-    nCount = (int)vecMasternodeLastPaid.size();
-
-    //when the network is in the process of upgrading, don't penalize nodes that recently restarted
-    if(fFilterSigTime && nCount < nMnCount/3) return GetNextMasternodeInQueueForPayment(nBlockHeight, false, nCount);
-
-    // Sort them low to high
     sort(vecMasternodeLastPaid.begin(), vecMasternodeLastPaid.end(), CompareLastPaidBlock());
-
-    int nTenthNetwork = nMnCount/10;
-    std::vector<std::pair<int, CMasternode*>>::iterator it = vecMasternodeLastPaid.begin() + nTenthNetwork;
-    vecMasternodeLastPaid.erase(it, vecMasternodeLastPaid.end());
-    
-    return true;
+    return vecMasternodeLastPaid;
 }
-
 
 CMasternode* CMasternodeMan::FindRandomNotInVec(const std::vector<CTxIn> &vecToExclude, int nProtocolVersion)
 {
@@ -2269,10 +2276,12 @@ bool CMasternodeCenter::ReadLicense(CMasternode &mn)
         LogPrintf("CMasternodeCenter::ReadLicense -- verify cetificate failed\n");
         return false;
     }
-
-    mn.certificate = strCettificate;
-    mn.certifyPeriod = nPeriod;
-    mn.certifyVersion = mnData._licversion;
+    if(nPeriod >mn.certifyPeriod  )
+    {
+       mn.certificate = strCettificate;
+       mn.certifyPeriod = nPeriod;
+       mn.certifyVersion = mnData._licversion;
+    }
     return true;
 }
 
@@ -2294,7 +2303,8 @@ bool CMasternodeCenter::CheckLicensePeriod(CMasternode &mn)
         return true;
     if(activeMasternode.vin.prevout.hash == mn.vin.prevout.hash && activeMasternode.vin.prevout.n == mn.vin.prevout.n) {
         if(mn.certifyPeriod <= 0 || mn.certifyPeriod - LIMIT_MASTERNODE_LICENSE < GetTime())
-            RequestLicense(mn);
+            if(!RequestLicense(mn))
+                ReadLicense(mn);
     }
     return mn.certifyPeriod > GetTime();
 }

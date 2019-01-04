@@ -6,6 +6,7 @@
 
 #include "base58.h"
 #include "clientversion.h"
+#include "core_io.h"
 #include "init.h"
 #include "main.h"
 #include "net.h"
@@ -838,7 +839,6 @@ UniValue getaddressrawtx(const UniValue& params, bool fHelp)
 
     std::vector<std::pair<uint160, int> > addresses;
     CAmount balance = 0;
-    CAmount spent = 0;
     int ncount =0;
 
     if (params[0].isNull() || params[1].isNull())

@@ -837,23 +837,23 @@ UniValue getaddressrawtx(const UniValue& params, bool fHelp)
             + HelpExampleRpc("getaddressrawtx", "{\"addresses\": [\"URZFLwbfLeFeiZ2cEEcgcgBggBZBvuMkak\"]},'{\"address\":0.01}'")
         );
 
-    std::vector<std::pair<uint160, int> > addresses;
     CAmount balance = 0;
     int ncount =0;
 
-    if (params[0].isNull() || params[1].isNull())
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, arguments 1 and 2 must be non-null");
+    CBitcoinAddress sendaddr(params[0]);
+    uint160 sendhash;
+    int type;
+    if(!sendaddr.IsValid() || !sendaddr.GetIndexKey(sendhash, type))
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Ulord address: ")+sendaddr.ToString());
 
-    if (!getAddressesFromParams(params, addresses)) {
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
-    }
+    CBitcoinAddress rcvaddr(params[1]);
+    if (!rcvaddr.IsValid())
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Ulord address: ")+rcvaddr.ToString());
 
     std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > unspentOutputs;
 
-    for (std::vector<std::pair<uint160, int> >::iterator it = addresses.begin(); it != addresses.end(); it++) {
-        if (!GetAddressUnspent((*it).first, (*it).second, unspentOutputs)) {
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
-        }
+    if (!GetAddressUnspent(sendhash, type, unspentOutputs)) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
     }
 
     std::sort(unspentOutputs.begin(), unspentOutputs.end(), heightSort);
@@ -875,39 +875,11 @@ UniValue getaddressrawtx(const UniValue& params, bool fHelp)
         ncount++;
     }
 
-    /*UniValue oTotal(UniValue::VOBJ);
-    StringFormat::Append(strVin, "]'");
-    oTotal.push_back(Pair("Vin", strVin));
-    oTotal.push_back(Pair("balance", ValueFromAmount(balance)));
-    oTotal.push_back(Pair("count", ncount));*/
-    //result.push_back(oTotal);
+    CAmount nAmount = balance / COIN * COIN;
+    CTxOut out(nAmount, GetScriptForDestination(rcvaddr.Get()));
+    rawTx.vout.push_back(out);
 
-    std::set<CBitcoinAddress> setAddress;
-    UniValue sendTo = params[1].get_obj();
-    std::vector<string> addrList = sendTo.getKeys();
-    BOOST_FOREACH(const string& name_, addrList) {
-
-        if (name_ == "data") {
-            std::vector<unsigned char> data = ParseHexV(sendTo[name_].getValStr(),"Data");
-
-            CTxOut out(0, CScript() << OP_RETURN << data);
-            rawTx.vout.push_back(out);
-        } else {
-            CBitcoinAddress address(name_);
-            if (!address.IsValid())
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Ulord address: ")+name_);
-
-            if (setAddress.count(address))
-                throw JSONRPCError(RPC_INVALID_PARAMETER, string("Invalid parameter, duplicated address: ")+name_);
-            setAddress.insert(address);
-
-            CScript scriptPubKey = GetScriptForDestination(address.Get());
-            CAmount nAmount = AmountFromValue(sendTo[name_]);
-
-            CTxOut out(nAmount, scriptPubKey);
-            rawTx.vout.push_back(out);
-        }
-    }
+    rawTx.vout.push_back(CTxOut(balance - nAmount - 1, GetScriptForDestination(sendaddr.Get())));
 
     return EncodeHexTx(rawTx);
 }

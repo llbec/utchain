@@ -793,7 +793,7 @@ UniValue getaddressvin(const UniValue& params, bool fHelp)
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Unknown address type");
         }
 
-        StringFormat::Append(strVin, "\"{\"txid\":\"%s\",\"vout\":%d}\",", it->first.txhash.GetHex().c_str(), (int)it->first.index);
+        StringFormat::Append(strVin, "{\"txid\":\"%s\",\"vout\":%d},", it->first.txhash.GetHex().c_str(), (int)it->first.index);
         balance += it->second.satoshis;
         ncount++;
     }
@@ -806,6 +806,110 @@ UniValue getaddressvin(const UniValue& params, bool fHelp)
     //result.push_back(oTotal);
 
     return oTotal;
+}
+
+UniValue getaddressrawtx(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1)
+        throw runtime_error(
+            "getaddressrawtx\n"
+            "\nReturns unsigned rawtransaction.\n"
+            "\nArguments:\n"
+            "1. \"address\"        (string, required) A json array of json objects\n"
+            "     {\n"
+            "       \"addresses\"\n"
+            "         [\n"
+            "           \"address\"  (string) The base58check encoded address\n"
+            "           ,...\n"
+            "         ]\n"
+            "     }\n"
+            "2. \"outputs\"             (string, required) a json object with outputs\n"
+            "    {\n"
+            "      \"address\": x.xxx   (numeric or string, required) The key is the ulord address, the numeric value (can be string) is the " + CURRENCY_UNIT + " amount\n"
+            "      \"data\": \"hex\",     (string, required) The key is \"data\", the value is hex encoded data\n"
+            "      ...\n"
+            "    }\n"
+            "\nResult\n"
+            "\"transaction\"            (string) hex string of the transaction\n"
+            "\nExamples:\n"
+            + HelpExampleCli("getaddressrawtx", "'{\"addresses\": [\"URZFLwbfLeFeiZ2cEEcgcgBggBZBvuMkak\"]}' '{\"address\":0.01}'")
+            + HelpExampleRpc("getaddressrawtx", "{\"addresses\": [\"URZFLwbfLeFeiZ2cEEcgcgBggBZBvuMkak\"]},'{\"address\":0.01}'")
+        );
+
+    std::vector<std::pair<uint160, int> > addresses;
+    CAmount balance = 0;
+    CAmount spent = 0;
+    int ncount =0;
+
+    if (params[0].isNull() || params[1].isNull())
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, arguments 1 and 2 must be non-null");
+
+    if (!getAddressesFromParams(params, addresses)) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
+    }
+
+    std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > unspentOutputs;
+
+    for (std::vector<std::pair<uint160, int> >::iterator it = addresses.begin(); it != addresses.end(); it++) {
+        if (!GetAddressUnspent((*it).first, (*it).second, unspentOutputs)) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
+        }
+    }
+
+    std::sort(unspentOutputs.begin(), unspentOutputs.end(), heightSort);
+
+    //UniValue result(UniValue::VARR);
+    CMutableTransaction rawTx;
+
+    for (std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> >::const_iterator it=unspentOutputs.begin(); it!=unspentOutputs.end(); it++) {
+        std::string address;
+        if (!getAddressFromIndex(it->first.type, it->first.hashBytes, address)) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Unknown address type");
+        }
+
+        uint32_t nSequence = (rawTx.nLockTime ? std::numeric_limits<uint32_t>::max() - 1 : std::numeric_limits<uint32_t>::max());
+        CTxIn in(COutPoint(it->first.txhash, (int)it->first.index), CScript(), nSequence);
+
+        rawTx.vin.push_back(in);
+        balance += it->second.satoshis;
+        ncount++;
+    }
+
+    /*UniValue oTotal(UniValue::VOBJ);
+    StringFormat::Append(strVin, "]'");
+    oTotal.push_back(Pair("Vin", strVin));
+    oTotal.push_back(Pair("balance", ValueFromAmount(balance)));
+    oTotal.push_back(Pair("count", ncount));*/
+    //result.push_back(oTotal);
+
+    std::set<CBitcoinAddress> setAddress;
+    UniValue sendTo = params[1].get_obj();
+    std::vector<string> addrList = sendTo.getKeys();
+    BOOST_FOREACH(const string& name_, addrList) {
+
+        if (name_ == "data") {
+            std::vector<unsigned char> data = ParseHexV(sendTo[name_].getValStr(),"Data");
+
+            CTxOut out(0, CScript() << OP_RETURN << data);
+            rawTx.vout.push_back(out);
+        } else {
+            CBitcoinAddress address(name_);
+            if (!address.IsValid())
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Ulord address: ")+name_);
+
+            if (setAddress.count(address))
+                throw JSONRPCError(RPC_INVALID_PARAMETER, string("Invalid parameter, duplicated address: ")+name_);
+            setAddress.insert(address);
+
+            CScript scriptPubKey = GetScriptForDestination(address.Get());
+            CAmount nAmount = AmountFromValue(sendTo[name_]);
+
+            CTxOut out(nAmount, scriptPubKey);
+            rawTx.vout.push_back(out);
+        }
+    }
+
+    return EncodeHexTx(rawTx);
 }
 
 

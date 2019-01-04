@@ -840,13 +840,13 @@ UniValue getaddressrawtx(const UniValue& params, bool fHelp)
     CAmount balance = 0;
     int ncount =0;
 
-    CBitcoinAddress sendaddr(params[0]);
+    CBitcoinAddress sendaddr(params[0].get_str());
     uint160 sendhash;
     int type;
     if(!sendaddr.IsValid() || !sendaddr.GetIndexKey(sendhash, type))
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Ulord address: ")+sendaddr.ToString());
 
-    CBitcoinAddress rcvaddr(params[1]);
+    CBitcoinAddress rcvaddr(params[1].get_str());
     if (!rcvaddr.IsValid())
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Ulord address: ")+rcvaddr.ToString());
 

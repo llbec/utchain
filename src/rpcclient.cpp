@@ -130,7 +130,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getaddressdeltas", 0},
     { "getaddressutxos", 0},
     { "getaddressvin", 0},
-    { "getaddressrawtx", 0},
     { "getaddressmempool", 0},
 };
 

@@ -816,25 +816,15 @@ UniValue getaddressrawtx(const UniValue& params, bool fHelp)
             "getaddressrawtx\n"
             "\nReturns unsigned rawtransaction.\n"
             "\nArguments:\n"
-            "1. \"address\"        (string, required) A json array of json objects\n"
-            "     {\n"
-            "       \"addresses\"\n"
-            "         [\n"
-            "           \"address\"  (string) The base58check encoded address\n"
-            "           ,...\n"
-            "         ]\n"
-            "     }\n"
-            "2. \"outputs\"             (string, required) a json object with outputs\n"
-            "    {\n"
-            "      \"address\": x.xxx   (numeric or string, required) The key is the ulord address, the numeric value (can be string) is the " + CURRENCY_UNIT + " amount\n"
-            "      \"data\": \"hex\",     (string, required) The key is \"data\", the value is hex encoded data\n"
-            "      ...\n"
-            "    }\n"
+            "1. \"address\"        (string, required) A string objects\n"
+            "     \"address\"  (string) The base58check encoded address\n"
+            "2. \"outputs\"             (string, required) a string object\n"
+            "     \"address\"  (string) The base58check encoded address\n"
             "\nResult\n"
             "\"transaction\"            (string) hex string of the transaction\n"
             "\nExamples:\n"
-            + HelpExampleCli("getaddressrawtx", "'{\"addresses\": [\"URZFLwbfLeFeiZ2cEEcgcgBggBZBvuMkak\"]}' '{\"address\":0.01}'")
-            + HelpExampleRpc("getaddressrawtx", "{\"addresses\": [\"URZFLwbfLeFeiZ2cEEcgcgBggBZBvuMkak\"]},'{\"address\":0.01}'")
+            + HelpExampleCli("getaddressrawtx", "\"URZFLwbfLeFeiZ2cEEcgcgBggBZBvuMkak\" \"address\"")
+            + HelpExampleRpc("getaddressrawtx", "\"URZFLwbfLeFeiZ2cEEcgcgBggBZBvuMkak\" \"address\"")
         );
 
     CAmount balance = 0;

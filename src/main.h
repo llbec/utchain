@@ -435,7 +435,7 @@ struct CAddressUnspentKey {
 struct CAddressUnspentValue {
 	int      coinbase;
     int      blockHeight;
-	uint32_t blocktime;
+	int64_t  blocktime;
     CAmount  satoshis;
     CScript  script;
 
@@ -450,7 +450,7 @@ struct CAddressUnspentValue {
         READWRITE(*(CScriptBase*)(&script));
     }
 
-    CAddressUnspentValue(CAmount sats, CScript scriptPubKey, int height, int isCoinbase, uint32_t time) {
+    CAddressUnspentValue(CAmount sats, CScript scriptPubKey, int height, int isCoinbase, int64_t time) {
         satoshis    = sats;
         script      = scriptPubKey;
         blockHeight = height;

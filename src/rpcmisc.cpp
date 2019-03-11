@@ -737,6 +737,8 @@ UniValue getaddressutxos(const UniValue& params, bool fHelp)
         output.push_back(Pair("satoshis", it->second.satoshis));
         output.push_back(Pair("height", it->second.blockHeight));
         output.push_back(Pair("comfirms", chainActive.Height()-it->second.blockHeight+1));
+		output.push_back(Pair("iscoinbase", it->second.coinbase==1?"true":"false"));
+		output.push_back(Pair("comfirms", it->second.blocktime));
         result.push_back(output);
     }
 
@@ -787,7 +789,7 @@ UniValue getaddressvin(const UniValue& params, bool fHelp)
     std::sort(unspentOutputs.begin(), unspentOutputs.end(), heightSort);
 
     //UniValue result(UniValue::VARR);
-    std::string strVin = "'[";
+    std::string strVin = "[";
 
     for (std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> >::const_iterator it=unspentOutputs.begin(); it!=unspentOutputs.end(); it++) {
         std::string address;
@@ -801,7 +803,7 @@ UniValue getaddressvin(const UniValue& params, bool fHelp)
     }
 
     UniValue oTotal(UniValue::VOBJ);
-    StringFormat::Append(strVin, "]'");
+    StringFormat::Append(strVin, "]");
     oTotal.push_back(Pair("Vin", strVin));
     oTotal.push_back(Pair("balance", ValueFromAmount(balance)));
     oTotal.push_back(Pair("count", ncount));

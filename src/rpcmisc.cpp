@@ -738,7 +738,7 @@ UniValue getaddressutxos(const UniValue& params, bool fHelp)
         output.push_back(Pair("height", it->second.blockHeight));
         output.push_back(Pair("comfirms", chainActive.Height()-it->second.blockHeight+1));
 		output.push_back(Pair("iscoinbase", it->second.coinbase==1?"true":"false"));
-		output.push_back(Pair("comfirms", it->second.blocktime));
+		output.push_back(Pair("time", it->second.blocktime));
         result.push_back(output);
     }
 

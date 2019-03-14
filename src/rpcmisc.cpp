@@ -752,13 +752,7 @@ UniValue getaddressvin(const UniValue& params, bool fHelp)
             "getaddressvin\n"
             "\nReturns all unspent outputs for an address (requires addressindex to be enabled).\n"
             "\nArguments:\n"
-            "{\n"
-            "  \"addresses\"\n"
-            "    [\n"
-            "      \"address\"  (string) The base58check encoded address\n"
-            "      ,...\n"
-            "    ]\n"
-            "}\n"
+            "\"address\"  (string) The base58check encoded address\n"
             "\nResult\n"
             "{\n"
             "  \"Vin\"  (string) All utxos collections of the address\n"
@@ -766,8 +760,8 @@ UniValue getaddressvin(const UniValue& params, bool fHelp)
             "  \"count\"  (number) The number of the collections\n"
             "}\n"
             "\nExamples:\n"
-            + HelpExampleCli("getaddressvin", "'{\"addresses\": [\"URZFLwbfLeFeiZ2cEEcgcgBggBZBvuMkak\"]}'")
-            + HelpExampleRpc("getaddressvin", "{\"addresses\": [\"URZFLwbfLeFeiZ2cEEcgcgBggBZBvuMkak\"]}")
+            + HelpExampleCli("getaddressvin", "URZFLwbfLeFeiZ2cEEcgcgBggBZBvuMkak")
+            + HelpExampleRpc("getaddressvin", "URZFLwbfLeFeiZ2cEEcgcgBggBZBvuMkak")
         );
 
     std::vector<std::pair<uint160, int> > addresses;
@@ -812,7 +806,7 @@ UniValue getaddressvin(const UniValue& params, bool fHelp)
     return oTotal;
 }
 
-UniValue getaddressrawtx(const UniValue& params, bool fHelp)
+/*UniValue getaddressrawtx(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() != 2)
         throw runtime_error(
@@ -875,7 +869,7 @@ UniValue getaddressrawtx(const UniValue& params, bool fHelp)
     rawTx.vout.push_back(CTxOut(balance - nAmount - 1, GetScriptForDestination(sendaddr.Get())));
 
     return EncodeHexTx(rawTx);
-}
+}*/
 
 
 UniValue getaddressdeltas(const UniValue& params, bool fHelp)

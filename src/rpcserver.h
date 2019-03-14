@@ -180,7 +180,6 @@ extern UniValue getconnectioncount(const UniValue& params, bool fHelp); // in rp
 extern UniValue getaddressmempool(const UniValue& params, bool fHelp);
 extern UniValue getaddressutxos(const UniValue& params, bool fHelp);
 extern UniValue getaddressvin(const UniValue& params, bool fHelp);
-extern UniValue getaddressrawtx(const UniValue& params, bool fHelp);
 extern UniValue getaddressdeltas(const UniValue& params, bool fHelp);
 extern UniValue getaddresstxids(const UniValue& params, bool fHelp);
 extern UniValue getaddressbalance(const UniValue& params, bool fHelp);

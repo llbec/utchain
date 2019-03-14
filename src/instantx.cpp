@@ -860,7 +860,7 @@ bool CTxLockRequest::IsValid(bool fRequireUnspent) const
     BOOST_FOREACH(const CTxIn& txin, vin) {
 
         CCoins coins;
-        //int nPrevoutHeight = 0;
+        int nPrevoutHeight = 0;
         if(!pcoinsTip->GetCoins(txin.prevout.hash, coins) ||
            (unsigned int)txin.prevout.n>=coins.vout.size() ||
            coins.vout[txin.prevout.n].IsNull()) {

@@ -732,12 +732,12 @@ UniValue getaddressutxos(const UniValue& params, bool fHelp)
 
         output.push_back(Pair("address", address));
         output.push_back(Pair("txid", it->first.txhash.GetHex()));
-        output.push_back(Pair("outputIndex", (int)it->first.index));
+        output.push_back(Pair("vout", (int)it->first.index));
         output.push_back(Pair("script", HexStr(it->second.script.begin(), it->second.script.end())));
         output.push_back(Pair("satoshis", it->second.satoshis));
         output.push_back(Pair("height", it->second.blockHeight));
         output.push_back(Pair("comfirms", chainActive.Height()-it->second.blockHeight+1));
-		output.push_back(Pair("iscoinbase", it->second.coinbase==1?"true":"false"));
+		output.push_back(Pair("coinbase", it->second.coinbase==1?"true":"false"));
 		output.push_back(Pair("time", it->second.blocktime));
         result.push_back(output);
     }

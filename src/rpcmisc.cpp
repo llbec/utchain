@@ -795,6 +795,10 @@ UniValue getaddressvin(const UniValue& params, bool fHelp)
         ncount++;
     }
 
+    if (strvin.find_last_of() == ',') {
+        strvin.pop_back();
+    }
+
     UniValue oTotal(UniValue::VOBJ);
     StringFormat::Append(strVin, "]");
     oTotal.push_back(Pair("Vin", strVin));

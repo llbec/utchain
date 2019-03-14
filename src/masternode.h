@@ -300,7 +300,7 @@ public:
 
     void IncreasePoSeBanScore() { if(nPoSeBanScore < MASTERNODE_POSE_BAN_MAX_SCORE) nPoSeBanScore++; }
     void DecreasePoSeBanScore() { if(nPoSeBanScore > -MASTERNODE_POSE_BAN_MAX_SCORE) nPoSeBanScore--; }
-
+    void PoSeBan() { nPoSeBanScore = MASTERNODE_POSE_BAN_MAX_SCORE; }
     masternode_info_t GetInfo();
 
     static std::string StateToString(int nStateIn);
@@ -309,7 +309,7 @@ public:
 
     int GetCollateralAge();
 
-    int64_t GetLastPaidTime() { return nTimeLastPaid; }
+    int GetLastPaidTime() { return nTimeLastPaid; }
     int GetLastPaidBlock() { return nBlockLastPaid; }
     void UpdateLastPaid(const CBlockIndex *pindex, int nMaxBlocksToScanBack);
 

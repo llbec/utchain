@@ -243,6 +243,7 @@ extern UniValue listreceivedbyaddress(const UniValue& params, bool fHelp);
 extern UniValue listreceivedbyaccount(const UniValue& params, bool fHelp);
 extern UniValue listtransactions(const UniValue& params, bool fHelp);
 extern UniValue listaddressgroupings(const UniValue& params, bool fHelp);
+extern UniValue listaddressbalances(const UniValue& params, bool fHelp);
 extern UniValue listaccounts(const UniValue& params, bool fHelp);
 extern UniValue listsinceblock(const UniValue& params, bool fHelp);
 extern UniValue gettransaction(const UniValue& params, bool fHelp);
@@ -353,6 +354,11 @@ extern UniValue crosschainrefund(const UniValue &params, bool fHelp);
 extern UniValue crosschainextractsecret(const UniValue &params, bool fHelp);
 extern UniValue crosschainauditcontract(const UniValue &params, bool fHelp);
 
+// ut fed1 rpc
+extern UniValue anchoruos(const UniValue &params, bool fHelp);
+extern UniValue addmultiaddress(const UniValue &params, bool fHelp);
+extern UniValue delmultiaddress(const UniValue &params, bool fHelp);
+extern UniValue selectmultiaddress(const UniValue &params, bool fHelp);
 
 // lock coin for some time
 extern UniValue lockcoin(const UniValue &params, bool fHelp);

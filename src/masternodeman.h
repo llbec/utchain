@@ -211,9 +211,9 @@ public:
     void AskForMN(CNode *pnode, const CTxIn &vin);
     void AskForMnb(CNode *pnode, const uint256 &hash);
 
-	///for test
-	void SetRegisteredCheckInterval(int time);
-
+    ///for test
+    void SetRegisteredCheckInterval(int time);
+    bool PoSeBan(const COutPoint &outpoint);
     /// Check all Masternodes
     void Check();
 
@@ -238,6 +238,7 @@ public:
     /// Find an entry
     CMasternode* Find(const CScript &payee);
     CMasternode* Find(const CTxIn& vin);
+    CMasternode* Find(const COutPoint& outpoint);
     CMasternode* Find(const CPubKey& pubKeyMasternode);
 
     /// Versions of Find that are safe to use from outside the class

@@ -24,10 +24,18 @@ extern CInstantSend instantsend;
     ### getting 5 of 10 signatures w/ 1000 nodes of 2900
     (1000/2900.0)**5 = 0.004875397277841433
 */
-static const int INSTANTSEND_CONFIRMATIONS_REQUIRED = 6;
+//static const int INSTANTSEND_CONFIRMATIONS_REQUIRED = 6;
 static const int DEFAULT_INSTANTSEND_DEPTH          = 5;           //the number of masternode-level confirmations, it can be 0 to 60
 
 static const int MIN_INSTANTSEND_PROTO_VERSION      = 70205;
+
+/// For how long we are going to accept votes/locks
+/// after we saw the first one for a specific transaction
+static const int INSTANTSEND_LOCK_TIMEOUT_SECONDS   = 15;
+
+/// For how long we are going to keep invalid votes and votes for failed lock attempts,
+/// must be greater than INSTANTSEND_LOCK_TIMEOUT_SECONDS
+static const int INSTANTSEND_FAILED_TIMEOUT_SECONDS = 60;
 
 extern bool fEnableInstantSend;
 extern int nInstantSendDepth;
@@ -69,8 +77,7 @@ private:
     void LockTransactionInputs(const CTxLockCandidate& txLockCandidate);
     //update UI and notify external script if any
     void UpdateLockedTransaction(const CTxLockCandidate& txLockCandidate);
-    bool ResolveConflicts(const CTxLockCandidate& txLockCandidate, int nMaxBlocks);
-
+    bool ResolveConflicts(const CTxLockCandidate& txLockCandidate/*, int nMaxBlocks*/);
     bool IsInstantSendReadyToLock(const uint256 &txHash);
 
 public:
@@ -111,7 +118,7 @@ class CTxLockRequest : public CTransaction
 {
 private:
     static const int TIMEOUT_SECONDS        = 5 * 60;
-    static const CAmount MIN_FEE            = 0.001 * COIN;
+    static const CAmount MIN_FEE            = 0.001 * COIN;       //the fee of per input via instantsend 
 
     int64_t nTimeCreated;
 
@@ -183,7 +190,8 @@ public:
     bool IsValid(CNode* pnode) const;
     void SetConfirmedHeight(int nConfirmedHeightIn) { nConfirmedHeight = nConfirmedHeightIn; }
     bool IsExpired(int nHeight) const;
-
+    bool IsTimedOut() const;
+    bool IsFailed() const;
     bool Sign();
     bool CheckSignature() const;
 
@@ -195,10 +203,11 @@ class COutPointLock
 private:
     COutPoint outpoint; // utxo
     std::map<COutPoint, CTxLockVote> mapMasternodeVotes; // masternode outpoint - vote
+    bool fAttacked = false;
 
 public:
-    static const int SIGNATURES_REQUIRED        = 6;
-    static const int SIGNATURES_TOTAL           = 10;
+    static const int SIGNATURES_REQUIRED        = 6;        //every outpoint have to get 6 signatures at least
+    static const int SIGNATURES_TOTAL           = 10;       //number of masternodes to vote
 
     COutPointLock(const COutPoint& outpointIn) :
         outpoint(outpointIn),
@@ -212,7 +221,7 @@ public:
     bool HasMasternodeVoted(const COutPoint& outpointMasternodeIn) const;
     int CountVotes() const { return mapMasternodeVotes.size(); }
     bool IsReady() const { return CountVotes() >= SIGNATURES_REQUIRED; }
-
+    void MarkAsAttacked() { fAttacked = true; }
     void Relay() const;
 };
 
@@ -220,6 +229,7 @@ class CTxLockCandidate
 {
 private:
     int nConfirmedHeight; // when corresponding tx is 0-confirmed or conflicted, nConfirmedHeight is -1
+    int64_t nTimeCreated;
 
 public:
     CTxLockCandidate(const CTxLockRequest& txLockRequestIn) :
@@ -236,13 +246,15 @@ public:
     void AddOutPointLock(const COutPoint& outpoint);
     bool AddVote(const CTxLockVote& vote);
     bool IsAllOutPointsReady() const;
+    void MarkOutpointAsAttacked(const COutPoint& outpoint);
 
     bool HasMasternodeVoted(const COutPoint& outpointIn, const COutPoint& outpointMasternodeIn);
     int CountVotes() const;
 
     void SetConfirmedHeight(int nConfirmedHeightIn) { nConfirmedHeight = nConfirmedHeightIn; }
     bool IsExpired(int nHeight) const;
-
+    bool IsTimedOut() const;
+	
     void Relay() const;
 };
 

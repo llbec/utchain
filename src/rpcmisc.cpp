@@ -6,7 +6,6 @@
 
 #include "base58.h"
 #include "clientversion.h"
-#include "core_io.h"
 #include "init.h"
 #include "main.h"
 #include "net.h"

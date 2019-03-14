@@ -783,6 +783,9 @@ UniValue getaddressvin(const UniValue& params, bool fHelp)
 
     //UniValue result(UniValue::VARR);
     std::string strVin = "[";
+    std::string strPremature = "[";
+    CAmount balancePremature = 0;
+    int ncountPremature =0;
 
     for (std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> >::const_iterator it=unspentOutputs.begin(); it!=unspentOutputs.end(); it++) {
         std::string address;
@@ -790,9 +793,15 @@ UniValue getaddressvin(const UniValue& params, bool fHelp)
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Unknown address type");
         }
 
-        StringFormat::Append(strVin, "{\"txid\":\"%s\",\"vout\":%d},", it->first.txhash.GetHex().c_str(), (int)it->first.index);
-        balance += it->second.satoshis;
-        ncount++;
+        if (it->second.coinbase == 1 && COINBASE_MATURITY > chainActive.Height()-it->second.blockHeight+1) {
+            StringFormat::Append(strPremature, "{\"txid\":\"%s\",\"vout\":%d},", it->first.txhash.GetHex().c_str(), (int)it->first.index);
+            balancePremature += it->second.satoshis;
+            ncountPremature++;
+        } else {
+            StringFormat::Append(strVin, "{\"txid\":\"%s\",\"vout\":%d},", it->first.txhash.GetHex().c_str(), (int)it->first.index);
+            balance += it->second.satoshis;
+            ncount++;
+        }
     }
 
     if (strVin[strVin.size()-1] == ',') {
@@ -805,6 +814,15 @@ UniValue getaddressvin(const UniValue& params, bool fHelp)
     oTotal.push_back(Pair("balance", ValueFromAmount(balance)));
     oTotal.push_back(Pair("count", ncount));
     //result.push_back(oTotal);
+    if(ncountPremature != 0) {
+        strPremature.pop_back();
+        StringFormat::Append(strPremature, "]");
+        UniValue oPremature(UniValue::VOBJ);
+        oPremature.push_back(Pair("Vin", strPremature));
+        oPremature.push_back(Pair("balance", ValueFromAmount(balancePremature)));
+        oPremature.push_back(Pair("count", ncountPremature));
+        oTotal.push_back(Pair("Premature", oPremature));
+    }
 
     return oTotal;
 }

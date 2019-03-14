@@ -29,6 +29,8 @@
 #include <boost/algorithm/string.hpp>
 
 #include <univalue.h>
+//for getaddressvin
+#include "consensus/consensus.h"
 
 using namespace std;
 
@@ -787,14 +789,18 @@ UniValue getaddressvin(const UniValue& params, bool fHelp)
     CAmount balancePremature = 0;
     int ncountPremature =0;
 
+    //auto stringFromAmount = [](CAmount n){return String::Format("%s%d.%08d", n<0?"-":"", n/COIN, n%COIN);};
+
     for (std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> >::const_iterator it=unspentOutputs.begin(); it!=unspentOutputs.end(); it++) {
         std::string address;
         if (!getAddressFromIndex(it->first.type, it->first.hashBytes, address)) {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Unknown address type");
         }
 
-        if (it->second.coinbase == 1 && COINBASE_MATURITY > chainActive.Height()-it->second.blockHeight+1) {
-            StringFormat::Append(strPremature, "{\"txid\":\"%s\",\"vout\":%d},", it->first.txhash.GetHex().c_str(), (int)it->first.index);
+        int nconfirm = chainActive.Height() - it->second.blockHeight + 1;
+        if (it->second.coinbase == 1 && nconfirm < COINBASE_MATURITY) {
+            CAmount npv = it->second.satoshis;
+            StringFormat::Append(strPremature, "{txid: %s, vout: %d, confirm: %d, amount: %s%d.%08d},", it->first.txhash.GetHex().c_str(), (int)it->first.index, nconfirm, npv<0?"-":"", npv/COIN, npv%COIN);
             balancePremature += it->second.satoshis;
             ncountPremature++;
         } else {

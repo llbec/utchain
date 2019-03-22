@@ -179,10 +179,17 @@ extern void EnsureWalletIsUnlocked();
 extern UniValue getconnectioncount(const UniValue& params, bool fHelp); // in rpcnet.cpp
 extern UniValue getaddressmempool(const UniValue& params, bool fHelp);
 extern UniValue getaddressutxos(const UniValue& params, bool fHelp);
-extern UniValue getaddressvin(const UniValue& params, bool fHelp);
 extern UniValue getaddressdeltas(const UniValue& params, bool fHelp);
 extern UniValue getaddresstxids(const UniValue& params, bool fHelp);
 extern UniValue getaddressbalance(const UniValue& params, bool fHelp);
+extern UniValue getaddrvin(const UniValue& params, bool fHelp);
+extern UniValue getaddrmempool(const UniValue& params, bool fHelp);
+extern UniValue getaddrutxos(const UniValue& params, bool fHelp);
+extern UniValue getaddrdeltas(const UniValue& params, bool fHelp);
+extern UniValue getaddrtxids(const UniValue& params, bool fHelp);
+extern UniValue getaddrbalance(const UniValue& params, bool fHelp);
+
+
 
 extern UniValue getpeerinfo(const UniValue& params, bool fHelp);
 extern UniValue ping(const UniValue& params, bool fHelp);

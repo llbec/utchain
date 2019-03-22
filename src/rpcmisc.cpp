@@ -729,7 +729,7 @@ UniValue getaddrmempool(const UniValue& params, bool fHelp)
         delta.push_back(Pair("address", address));
         delta.push_back(Pair("txid", it->first.txhash.GetHex()));
         delta.push_back(Pair("index", (int)it->first.index));
-        delta.push_back(Pair("satoshis", it->second.amount));
+        delta.push_back(Pair("satoshis", ValueFromAmount(it->second.amount)));
         delta.push_back(Pair("timestamp", it->second.time));
         if (it->second.amount < 0) {
             delta.push_back(Pair("prevtxid", it->second.prevhash.GetHex()));
@@ -864,7 +864,7 @@ UniValue getaddrutxos(const UniValue& params, bool fHelp)
         output.push_back(Pair("txid", it->first.txhash.GetHex()));
         output.push_back(Pair("vout", (int)it->first.index));
         output.push_back(Pair("script", HexStr(it->second.script.begin(), it->second.script.end())));
-        output.push_back(Pair("satoshis", it->second.satoshis));
+        output.push_back(Pair("satoshis", ValueFromAmount(it->second.satoshis)));
         output.push_back(Pair("height", it->second.blockHeight));
         output.push_back(Pair("comfirms", chainActive.Height()-it->second.blockHeight+1));
 		output.push_back(Pair("coinbase", it->second.coinbase==1?"true":"false"));
@@ -1169,7 +1169,7 @@ UniValue getaddrdeltas(const UniValue& params, bool fHelp)
         }
 
         UniValue delta(UniValue::VOBJ);
-        delta.push_back(Pair("satoshis", it->second));
+        delta.push_back(Pair("satoshis", ValueFromAmount(it->second)));
         delta.push_back(Pair("txid", it->first.txhash.GetHex()));
         delta.push_back(Pair("index", (int)it->first.index));
         delta.push_back(Pair("blockindex", (int)it->first.txindex));

@@ -1269,7 +1269,7 @@ UniValue getaddrtxids(const UniValue& params, bool fHelp)
             + HelpExampleRpc("getaddresstxids", "{\"addresses\": [\"URZFLwbfLeFeiZ2cEEcgcgBggBZBvuMkak\"]}")
         );
 
-    return addrTxids(params, start, end);
+    return addrTxids(params, 0, 0);
 }
 
 UniValue getspentinfo(const UniValue& params, bool fHelp)

@@ -605,7 +605,7 @@ bool timestampSort(std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> a,
     return a.second.time < b.second.time;
 }
 
-UniValue addrMempool(const UniValue& params)
+UniValue addrMempool(const UniValue& params, bool f = false)
 {
     std::vector<std::pair<uint160, int> > addresses;
 
@@ -635,7 +635,7 @@ UniValue addrMempool(const UniValue& params)
         delta.push_back(Pair("address", address));
         delta.push_back(Pair("txid", it->first.txhash.GetHex()));
         delta.push_back(Pair("index", (int)it->first.index));
-        delta.push_back(Pair("satoshis", it->second.amount));
+        delta.push_back(Pair("satoshis", f ? ValueFromAmount(it->second.amount) : it->second.amount));
         delta.push_back(Pair("timestamp", it->second.time));
         if (it->second.amount < 0) {
             delta.push_back(Pair("prevtxid", it->second.prevhash.GetHex()));
@@ -706,10 +706,10 @@ UniValue getaddrmempool(const UniValue& params, bool fHelp)
             + HelpExampleRpc("getaddrmempool", "URZFLwbfLeFeiZ2cEEcgcgBggBZBvuMkak")
         );
 
-    return addrMempool(params);
+    return addrMempool(params, true);
 }
 
-UniValue addrUtxos(const UniValue& params)
+UniValue addrUtxos(const UniValue& params, bool f = false)
 {
     std::vector<std::pair<uint160, int> > addresses;
 
@@ -740,7 +740,7 @@ UniValue addrUtxos(const UniValue& params)
         output.push_back(Pair("txid", it->first.txhash.GetHex()));
         output.push_back(Pair("vout", (int)it->first.index));
         output.push_back(Pair("script", HexStr(it->second.script.begin(), it->second.script.end())));
-        output.push_back(Pair("satoshis", it->second.satoshis));
+        output.push_back(Pair("satoshis", f ? ValueFromAmount(it->second.satoshis) : it->second.satoshis));
         output.push_back(Pair("height", it->second.blockHeight));
         output.push_back(Pair("comfirms", chainActive.Height()-it->second.blockHeight+1));
 		output.push_back(Pair("coinbase", it->second.coinbase==1?"true":"false"));
@@ -807,7 +807,7 @@ UniValue getaddrutxos(const UniValue& params, bool fHelp)
             + HelpExampleRpc("getaddrutxos", "URZFLwbfLeFeiZ2cEEcgcgBggBZBvuMkak")
         );
 
-    return addrUtxos(params);
+    return addrUtxos(params, true);
 }
 
 UniValue getaddrvin(const UniValue& params, bool fHelp)
@@ -962,7 +962,7 @@ UniValue getaddrvin(const UniValue& params, bool fHelp)
     return EncodeHexTx(rawTx);
 }*/
 
-UniValue addrDeltas(const UniValue& params, int start, int end)
+UniValue addrDeltas(const UniValue& params, int start, int end, bool f = false)
 {
     std::vector<std::pair<uint160, int> > addresses;
 
@@ -993,7 +993,7 @@ UniValue addrDeltas(const UniValue& params, int start, int end)
         }
 
         UniValue delta(UniValue::VOBJ);
-        delta.push_back(Pair("satoshis", it->second));
+        delta.push_back(Pair("satoshis", f ? ValueFromAmount(it->second) : it->second));
         delta.push_back(Pair("txid", it->first.txhash.GetHex()));
         delta.push_back(Pair("index", (int)it->first.index));
         delta.push_back(Pair("blockindex", (int)it->first.txindex));
@@ -1077,10 +1077,10 @@ UniValue getaddrdeltas(const UniValue& params, bool fHelp)
             + HelpExampleRpc("getaddrdeltas", "{\"addresses\": [\"URZFLwbfLeFeiZ2cEEcgcgBggBZBvuMkak\"]}")
         );
 
-    return addrDeltas(params, 0, 0);
+    return addrDeltas(params, 0, 0, true);
 }
 
-UniValue addrBalance(const UniValue& params)
+UniValue addrBalance(const UniValue& params, bool f = false)
 {
     std::vector<std::pair<uint160, int> > addresses;
 
@@ -1107,8 +1107,8 @@ UniValue addrBalance(const UniValue& params)
     }
 
     UniValue result(UniValue::VOBJ);
-    result.push_back(Pair("balance", balance));
-    result.push_back(Pair("received", received));
+    result.push_back(Pair("balance", f ? ValueFromAmount(balance) : balance));
+    result.push_back(Pair("received", f ? ValueFromAmount(received) : received));
 
     return result;
 }
@@ -1158,7 +1158,7 @@ UniValue getaddrbalance(const UniValue& params, bool fHelp)
             + HelpExampleRpc("getaddrbalance", "URZFLwbfLeFeiZ2cEEcgcgBggBZBvuMkak")
         );
 
-    return addrBalance(params);
+    return addrBalance(params, true);
 }
 
 UniValue addrTxids(const UniValue& params, int start, int end)

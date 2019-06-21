@@ -1597,10 +1597,7 @@ bool GetAddressList(std::vector<std::pair<CAddressIndexKey, CAmount> > &addressI
 	{
         return error("address index not enabled");
 	}
-    if (!pblocktree->AllAddressIndex(addressIndex))
-	{
-        return error("unable to get all addresses");
-	}
+    pblocktree->AllAddressIndex(addressIndex);
 
     return true;
 }

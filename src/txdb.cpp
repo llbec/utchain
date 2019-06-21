@@ -237,7 +237,7 @@ bool CBlockTreeDB::EraseAddressIndex(const std::vector<std::pair<CAddressIndexKe
 
 void CBlockTreeDB::AllAddressIndex(std::vector<std::pair<CAddressIndexKey, CAmount> > &addressIndex) {
     boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
-    pcursor->SeekToFirst()
+    pcursor->SeekToFirst();
     while(pcursor->Valid()) {
         boost::this_thread::interruption_point();
         std::pair<char,CAddressIndexKey> key;

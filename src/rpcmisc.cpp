@@ -814,7 +814,7 @@ UniValue getaddrlist(const UniValue& params, bool fHelp)
 {
     std::vector<std::pair<CAddressIndexKey, CAmount> > addressIndex;
     std::map<uint160, CAmount> addrlist;
-    if !(GetAddressList(addressIndex)) {
+    if (!GetAddressList(addressIndex)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Scan all addresses failed");
     }
     for (std::vector<std::pair<CAddressIndexKey, CAmount> >::const_iterator it=addressIndex.begin(); it!=addressIndex.end(); it++) {

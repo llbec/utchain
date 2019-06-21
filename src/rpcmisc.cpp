@@ -832,7 +832,7 @@ UniValue getaddrlist(const UniValue& params, bool fHelp)
     }
 
     CAmount nAmount = AmountFromValue(params[0]);
-    if (nAmount <= 0)
+    if (nAmount < 0)
         throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount for collect");
 
     std::vector<std::pair<CAddressIndexKey, CAmount> > addressIndex;

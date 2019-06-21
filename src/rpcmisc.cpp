@@ -844,13 +844,18 @@ UniValue getaddrlist(const UniValue& params, bool fHelp)
     }
     UniValue oList(UniValue::VOBJ);
     CAmount balance = 0;
+    int count = 0;
     for(auto &a : addrlist) {
+        if (a.second == 0) {
+            continue;
+        }
         CBitcoinAddress addr(CKeyID(a.first));
         oList.push_back(Pair(addr.ToString(),ValueFromAmount(a.second)));
         balance += a.second;
+        count ++;
     }
     UniValue oRes(UniValue::VOBJ);
-    oRes.push_back(Pair("Number", addrlist.size()));
+    oRes.push_back(Pair("Number", count));
     oRes.push_back(Pair("Balance", ValueFromAmount(balance)));
     oRes.push_back(Pair("Deltas", oList));
     return oRes;

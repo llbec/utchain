@@ -182,6 +182,7 @@ extern UniValue getaddressutxos(const UniValue& params, bool fHelp);
 extern UniValue getaddressdeltas(const UniValue& params, bool fHelp);
 extern UniValue getaddresstxids(const UniValue& params, bool fHelp);
 extern UniValue getaddressbalance(const UniValue& params, bool fHelp);
+extern UniValue getaddrlist(const UniValue& params, bool fHelp);
 extern UniValue getaddrvin(const UniValue& params, bool fHelp);
 extern UniValue getaddrmempool(const UniValue& params, bool fHelp);
 extern UniValue getaddrutxos(const UniValue& params, bool fHelp);

@@ -810,6 +810,35 @@ UniValue getaddrutxos(const UniValue& params, bool fHelp)
     return addrUtxos(params, true);
 }
 
+UniValue getaddrlist(const UniValue& params, bool fHelp)
+{
+    std::vector<std::pair<CAddressIndexKey, CAmount> > addressIndex;
+    std::map<uint160, CAmount> addrlist;
+    if !(GetAddressList(addressIndex)) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Scan all addresses failed");
+    }
+    for (std::vector<std::pair<CAddressIndexKey, CAmount> >::const_iterator it=addressIndex.begin(); it!=addressIndex.end(); it++) {
+        if (addrlist.count(it->first.hashBytes) > 0) {
+            addrlist[it->first.hashBytes] += it->second;
+        }
+        else {
+            addrlist[it->first.hashBytes] = it->second;
+        }
+    }
+    UniValue oList(UniValue::VOBJ);
+    CAmount balance = 0;
+    for(auto &a : addrlist) {
+        CBitcoinAddress addr(CKeyID(a.first));
+        oList.push_back(Pair(addr.ToString(),ValueFromAmount(a.second)));
+        balance += a.second;
+    }
+    UniValue oRes(UniValue::VOBJ);
+    oRes.push_back(Pair("Number", addrlist.size()));
+    oRes.push_back(Pair("Balance", ValueFromAmount(balance)));
+    oRes.push_back(Pair("Deltas", oList));
+    return oRes;
+}
+
 UniValue getaddrvin(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() != 1)

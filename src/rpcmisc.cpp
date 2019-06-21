@@ -812,6 +812,23 @@ UniValue getaddrutxos(const UniValue& params, bool fHelp)
 
 UniValue getaddrlist(const UniValue& params, bool fHelp)
 {
+    if (fHelp) {
+        throw runtime_error(
+            "getaddrlist\n"
+            "\nReturns all address\n"
+            "\nArguments:\n"
+            "\n"
+            "\nResult\n"
+            "{\n"
+            "  \"Number\"  (number) number of all addresses\n"
+            "  \"balance\"  (number) The number of satoshis of the all addresses\n"
+            "  \"Deltas\"  (Object) The list of the addresses\n"
+            "}\n"
+            "\nExamples:\n"
+            + HelpExampleCli("getaddrlist", "")
+            + HelpExampleRpc("getaddrlist", "")
+        );
+    }
     std::vector<std::pair<CAddressIndexKey, CAmount> > addressIndex;
     std::map<uint160, CAmount> addrlist;
     if (!GetAddressList(addressIndex)) {

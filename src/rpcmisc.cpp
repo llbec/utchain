@@ -812,11 +812,12 @@ UniValue getaddrutxos(const UniValue& params, bool fHelp)
 
 UniValue getaddrlist(const UniValue& params, bool fHelp)
 {
-    if (fHelp) {
+    if (fHelp|| params.size() != 1) {
         throw runtime_error(
             "getaddrlist\n"
             "\nReturns all address\n"
             "\nArguments:\n"
+            "\"amount\"  (numeric or string, required) Collect who's balance > amount\n"
             "\n"
             "\nResult\n"
             "{\n"
@@ -825,10 +826,15 @@ UniValue getaddrlist(const UniValue& params, bool fHelp)
             "  \"Deltas\"  (Object) The list of the addresses\n"
             "}\n"
             "\nExamples:\n"
-            + HelpExampleCli("getaddrlist", "")
-            + HelpExampleRpc("getaddrlist", "")
+            + HelpExampleCli("getaddrlist", "0")
+            + HelpExampleRpc("getaddrlist", "0")
         );
     }
+
+    CAmount nAmount = AmountFromValue(params[0]);
+    if (nAmount <= 0)
+        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount for collect");
+
     std::vector<std::pair<CAddressIndexKey, CAmount> > addressIndex;
     std::map<uint160, CAmount> addrlist;
     if (!GetAddressList(addressIndex)) {
@@ -846,13 +852,12 @@ UniValue getaddrlist(const UniValue& params, bool fHelp)
     CAmount balance = 0;
     int count = 0;
     for(auto &a : addrlist) {
-        if (a.second == 0) {
-            continue;
+        if (a.second > nAmount) {
+            CBitcoinAddress addr(CKeyID(a.first));
+            oList.push_back(Pair(addr.ToString(),ValueFromAmount(a.second)));
+            balance += a.second;
+            count ++;
         }
-        CBitcoinAddress addr(CKeyID(a.first));
-        oList.push_back(Pair(addr.ToString(),ValueFromAmount(a.second)));
-        balance += a.second;
-        count ++;
     }
     UniValue oRes(UniValue::VOBJ);
     oRes.push_back(Pair("Number", count));

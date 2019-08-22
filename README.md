@@ -40,7 +40,7 @@ What is Ulord ?
                                  uuuuuu     
 
 
-Ulord is a P2P value delivery public chain. By offering its blockchain infrastructure and digital resource distribution protocols, it enables third-party developers to explore their own applications over open-source agreements to form a complete ecology of blockchain technology and applications. Based on various rules and protocols created by Ulord, it loads various types of digital resource application scenarios including text, pictures, music, video and software, providing a direct docking platform for information creators and consumers.
+Ulord is a P2P value delivery public chain. By building its  blockchain infrastructure and digital resource distribution protocols, third-party developers are supported to build their own applications on top of their open source agreements, and form a complete ecosystem of blockchain technologies and applications. Based on various rules and protocols created by Ulord, it loads various types of digital resource application scenarios including text, pictures, music, video and software, providing a direct docking platform for information creators and consumers.
 
 UlordChain Documentation and Usage Resources
 ---------------
@@ -52,7 +52,7 @@ Basic usage resources:
 * [Whitepaper](http://ulord.one/whitepaper/web/viewer.html?lang=zh)
 * [Downloads](http://ulord.one/download.html)
 
-General Info about Ulord:
+Developer proposal of Ulord:
 
 * [Community](https://ulorder.one/)
 

@@ -478,7 +478,9 @@ UniValue claimname(const UniValue& params, bool fHelp)
 	
 	CClaimValue claim;
 	if (pclaimTrie->getInfoForName(sName, claim))
+	{
 	   throw JSONRPCError(RPC_NAME_TRIE_EXITS, "The account name already exists");
+	}
 	
 	if ( vchName.size() > MAX_ACCOUNT_SIZE)
 	{
@@ -554,7 +556,7 @@ UniValue updateclaim( const UniValue & params,bool fHelp)
         + HelpRequiringPassphrase() +
         "\nArguments:\n"
         "1.  \"txid\"  (string, required) The transaction containing the unspent txout which should be spent.\n"
-        "2.  \"value\"  (string, required) The value to assign to the name.\n"
+        "2.  \"newaddress\"  (string, required) The value to assign to the name.\n"
         "3.  \"amount\"  (numeric, required) The amount in Ulord to use to bid for the name. eg 0.1\n"
         "\nResult:\n"
         "\"transactionid\"  (string) The new transaction id.\n"
@@ -3703,6 +3705,7 @@ UniValue sendtoaccountname(const UniValue &params, bool fHelp)
         + HelpExampleRpc("sendtoaccountname", "\"alfredzky\",\"0.1\" ")
     );
 
+	// send amount to others
     std::string sName = params[0].get_str();
     CClaimValue claim;
     if (!pclaimTrie->getInfoForName(sName, claim))
@@ -3713,7 +3716,7 @@ UniValue sendtoaccountname(const UniValue &params, bool fHelp)
 	if (!address.IsValid())
 		throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Ulord address");
 
-	// Amount
+	// some 
 	CAmount nAmount = AmountFromValue(params[1]);
 	if (nAmount <= 0 || nAmount > MAX_ACCOUNT_NAME_SEND )
 		throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount for send,eg amount must be in 1000UT");
@@ -3742,4 +3745,21 @@ UniValue sendtoaccountname(const UniValue &params, bool fHelp)
 	if ( !pwalletMain->CommitTransaction(wtxNew,reservekey) )
 		throw JSONRPCError(RPC_WALLET_ERROR, "Error: The transaction was rejected! This might happen if some of the coins in your wallet were already spent, such as if you used a copy of wallet.dat and coins were spent in the copy but not marked as spent here.");
     return wtxNew.GetHash().GetHex();	
+}
+UniValue addressisvalid(const UniValue &params, bool fHelp)
+{
+	if (fHelp || params.size() > 1)
+		throw runtime_error(
+			"addressisvalid address  \n"
+			"\nReturns result is vaild address for ut.\n"
+			"\nArguments:\n"
+			"1. \"ulordaddress\"  (string, required) The ulord address to send to.\n"
+			"\nResult:\n"
+			"\"result\"	 (string) vaild address or invaild address\n"
+			"\nExamples:\n"
+			+ HelpExampleCli("addressisvalid","XwnLY9Tf7Zsef8gMGL2fhWA9ZmMjt4KPwg")
+			+ HelpExampleRpc("addressisvalid","XwnLY9Tf7Zsef8gMGL2fhWA9ZmMjt4KPwg")
+		);
+	
+	return true;
 }

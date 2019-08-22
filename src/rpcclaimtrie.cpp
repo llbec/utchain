@@ -13,7 +13,6 @@
 
 
 
-
 // Maximum block decrement that is allowed from rpc calls
 const int MAX_RPC_BLOCK_DECREMENTS = 50;
 

@@ -1784,13 +1784,13 @@ CAmount GetMinerSubsidy(const int height, const Consensus::Params &cp)
         else
         {
             int halvings = (height - intval) / intval;
- 	    // force subsidy to 0 when right shift 64 bit is undifined
+ 	        // force subsidy to 0 when right shift 64 bit is undifined
             if (halvings > 63)
-	    {
-	        return 0;
-	    }
-	    CAmount subsidy(cp.minerReward5);
-	    subsidy >>= halvings;
+            {
+                return 0;
+            }
+            CAmount subsidy(cp.minerReward5);
+            subsidy >>= halvings;
             return subsidy;
         }
     }

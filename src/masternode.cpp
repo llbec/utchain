@@ -16,6 +16,7 @@
 
 #include <boost/lexical_cast.hpp>
 
+using namespace std;
 
 CMasternode::CMasternode() :
     vin(),
@@ -1191,4 +1192,225 @@ void CMasternode::FlagGovernanceItemsAsDirty()
     for(size_t i = 0; i < vecDirty.size(); ++i) {
         mnodeman.AddDirtyGovernanceObjectHash(vecDirty[i]);
     }
+}
+
+/*****************************************************************************
+*   Prototype    : CMasternodeCenter.CheckLicensePeriod
+*   Description  : check license period
+*   Input        : CMasternode &mn  
+*   Output       : None
+*   Return Value : bool CMasternodeCenter::
+*   Calls        : 
+*   Called By    : 
+*
+*   History:
+* 
+*       1.  Date         : 2019/9/24
+*           Author       : AlfredZKY
+*           Modification : Created function
+*
+*****************************************************************************/
+bool CMasternode::CheckLicensePeriod()
+{
+	 if (!sporkManager.IsSporkActive(SPORK_18_REQUIRE_MASTER_VERIFY_FLAG)) {
+	    return false;
+	}
+
+    if(activeMasternode.vin.prevout.hash == vin.prevout.hash && activeMasternode.vin.prevout.n == vin.prevout.n) {
+        if(certifyPeriod <= 0 || certifyPeriod - LIMIT_MASTERNODE_LICENSE < GetTime())
+           return false;
+    }
+    return certifyPeriod > GetTime();
+}
+uint256 CMasternode::GetLicenseWord()
+{
+    std::string  _txid = vin.prevout.hash.ToString();       
+    unsigned int _voutid = vin.prevout.n;
+
+    int          _licversion = certifyVersion;  
+    int64_t      _licperiod = certifyPeriod;
+	
+	CHashWriter ss(SER_GETHASH, 0);
+	ss << strMessageMagic;
+	ss << _txid;
+	ss << _voutid;
+	ss << pubKeyMasternode;
+	ss << _licperiod;
+	ss << _licversion;
+
+	uint256 hash = ss.GetHash();
+	return hash;
+}
+
+/*****************************************************************************
+*   Prototype    : CMasternode.VerifyLicense
+*   Description  : verify license valid
+*   Input        : None
+*   Output       : None
+*   Return Value : bool CMasternode::
+*   Calls        : 
+*   Called By    : 
+*
+*   History:
+* 
+*       1.  Date         : 2019/9/24
+*           Author       : AlfredZKY
+*           Modification : Created function
+*
+*****************************************************************************/
+bool CMasternode::VerifyLicense()
+{
+    CPubKey pubkeyFromSig;
+
+    LogPrintf("CMstNodeData::VerifyLicense:masternode<%s:%d-%ld>", vin.ToString(), certifyPeriod, certifyVersion);
+
+    bool fInvalid = false;
+    std::vector<unsigned char> vchSigRcv = DecodeBase64(certificate.c_str(), &fInvalid);
+	
+	// 
+    if (fInvalid) {
+        LogPrintf(" decode failed license = %s\n", certificate.c_str());
+        return false;
+    }
+    if(!pubkeyFromSig.RecoverCompact(GetLicenseWord(), vchSigRcv)) {
+        LogPrintf(" recover pubkey failed license = %s\n", certificate.c_str());
+        return false;
+    }
+
+    std::string strPub = GetArg("-uctpubkey", "03e947099921ee170da47a7acf48143c624d33950af362fc39a734b1b3188ec1e3");
+    CPubKey pubkeyucenter(ParseHex(strPub));
+    if(pubkeyFromSig != pubkeyucenter) {
+        LogPrintf(" key do not match : rcv pubkey = %s, ucenter pubkey = %s, license = %s\n",
+                    HexStr(pubkeyFromSig).c_str(),
+                    strPub.c_str(),
+                    certificate.c_str());
+        return false;
+    }
+    LogPrintf(" verify success\n");
+    return true;
+}
+
+/*****************************************************************************
+*   Prototype    : CMasternode.CheckOnline
+*   Description  : check whether the masternode online
+*   Input        : CMasternode dst
+                   int h
+                   int r
+*   Output       : None
+*   Return Value : true:ONLINE; false:OFFLINE
+*****************************************************************************/
+bool CMasternode::CheckOnline(const CMasternode& dst, int h, int r)
+{
+    CMasterNodePing stnodePing = CMasterNodePing(vin, dst.vin, h, r, CMasterNodePing::MASTERNODEPING_REQUEST);
+}
+
+CMasterNodePing::CMasterNodePing(char* buf, int len)
+{
+    source = CTxIn();
+    destination = CTxIn();
+    CDataStream stream(buf, buf+len, SER_NETWORK, PROTOCOL_VERSION);
+    stream >> *this;
+}
+
+CMasterNodePing::CMasterNodePing(CTxIn src, CTxIn dst, int h, int r, int t)
+{
+    source = src;
+    destination = dst;
+    height = h;
+    round = r;
+    type = t;
+}
+
+CMasterNodePing::~CMasterNodePing()
+{
+}
+
+uint256 CMasterNodePing::GetWord() const
+{
+    CHashWriter ss(SER_GETHASH, 0);
+    ss << strMessageMagic;
+    ss << source;
+    ss << destination;
+    ss << height;
+    ss << round;
+    ss << type;
+    return ss.GetHash();
+}
+
+std::string CMasterNodePing::ToString() const
+{
+    std::string str;
+    str = StringFormat::Format("%s message from %s to %s at height %d and round %d", type==MASTERNODEPING_REQUEST?"Ping":"ACK", source.prevout.ToStringShort(), destination.prevout.ToStringShort(), height, round);
+    return str;
+}
+
+uint256 CMasterNodePing::GetHash() const
+{
+    CHashWriter ss(SER_GETHASH, PROTOCOL_VERSION);
+    ss << source;
+    ss << destination;
+    ss << height;
+    ss << round;
+    ss << type;
+    ss << vchSig;
+    return ss.GetHash();
+}
+
+bool CMasterNodePing::Sign(CKey& key)
+{
+    if(!key.SignCompact(GetWord(), vchSig)) {
+        LogPrintf("CMasternodePing::Sign -- SignCompact() failed\n");
+        return false;
+    }
+    if (!VerifySignature()) {
+        LogPrintf("CMasternodePing::Sign -- Verify() failed\n");
+        return false;
+    }
+    return true;
+}
+
+bool CMasterNodePing::VerifySignature()
+{
+    CPubKey pubkeyFromSig, pubkeySource;
+    if(!pubkeyFromSig.RecoverCompact(GetWord(), vchSig)) {
+        LogPrintf("CMasternodePing::VerifySignature -- RecoverCompact() failed\n");
+        return false;
+    }
+    //pubkeySource = interface(source); depend on masternode list interface to get pubkey
+    if(pubkeyFromSig.GetID() != pubkeySource.GetID()) {
+        std::string strErrorRet = strprintf("Keys don't match: vchSig=%s, msg(%s)",
+                    EncodeBase64(&vchSig[0], vchSig.size()), ToString());
+        return false;
+    }
+
+    return true;
+}
+
+bool CMasterNodePing::Verify()
+{
+    /*check is for me, depend on masternode list interface*/
+    //check destination
+
+    /*校验签名*/
+    if (!VerifySignature()) {
+        return false;
+    }
+    
+    /*depend on masternode list interface*/
+#if 0
+    if (type == MASTERNODEPING_REQUEST) {
+        /*Is source come from top 10 list*/
+    } else if (type == MASTERNODEPING_ACK) {
+        /* check the answer is the winner */
+    } else {
+        return false;
+    }
+#endif
+}
+
+std::string CMasterNodePing::Message()
+{
+	CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+    ss << *this;
+    return ss.str();
 }

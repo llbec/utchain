@@ -1813,6 +1813,9 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         } else {
             return InitError(_("You must specify a masternodeprivkey in the configuration. Please see documentation for help."));
         }
+		if(!BindMNCheckListenPort()) {
+			return InitError(_("BindMNCheckListenPort failed, please specify a valid IP address with externalip in the config file!"));
+		}
     }
 
 	// resolve ucenter domain to ip

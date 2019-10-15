@@ -28,96 +28,6 @@ static const int MASTERNODE_POSE_BAN_MAX_SCORE          = 5;
 // The Masternode Ping Class : Contains a different serialize method for sending pings from masternodes throughout the network
 //
 
-class CMasternodePing
-{
-public:
-    CTxIn vin;
-	CPubKey pubKeyMasternode;
-    uint256 blockHash;
-    int64_t sigTime; //mnb message times
-
-	int certifyVersion;    	
-	int64_t certifyPeriod;  //certificate available time
-	std::string certificate; //certificate֤
-    std::vector<unsigned char> vchSig;
-    //removed stop
-
-    CMasternodePing() :
-        vin(),
-		pubKeyMasternode(),
-        blockHash(),
-        sigTime(0),
-		certifyVersion(1),
-        certifyPeriod(0),
-        certificate(),
-        vchSig()
-        {}
-
-    CMasternodePing(CTxIn& vinNew);
-
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
-        READWRITE(vin);
-		READWRITE(pubKeyMasternode);
-        READWRITE(blockHash);
-        READWRITE(sigTime);
-		READWRITE(certifyVersion);
-		READWRITE(certifyPeriod);
-		READWRITE(certificate);
-        READWRITE(vchSig);
-    }
-
-    void swap(CMasternodePing& first, CMasternodePing& second) // nothrow
-    {
-        // enable ADL (not necessary in our case, but good practice)
-        using std::swap;
-
-        // by swapping the members of two classes,
-        // the two classes are effectively swapped
-        swap(first.vin, second.vin);
-		swap(first.pubKeyMasternode, second.pubKeyMasternode);
-        swap(first.blockHash, second.blockHash);
-        swap(first.sigTime, second.sigTime);
-		swap(first.certifyVersion, second.certifyVersion);
-		swap(first.certifyPeriod, second.certifyPeriod);
-		swap(first.certificate, second.certificate);
-        swap(first.vchSig, second.vchSig);
-    }
-
-    uint256 GetHash() const
-    {
-        CHashWriter ss(SER_GETHASH, PROTOCOL_VERSION);
-        ss << vin;
-        ss << sigTime;
-        return ss.GetHash();
-    }
-
-    bool IsExpired() { return GetTime() - sigTime > MASTERNODE_NEW_START_REQUIRED_SECONDS; }
-
-    bool Sign(CKey& keyMasternode, CPubKey& pubKeyMasternode);
-    bool CheckSignature(CPubKey& pubKeyMasternode, int &nDos);
-    bool SimpleCheck(int& nDos);
-    bool CheckAndUpdate(CMasternode* pmn, bool fFromNewBroadcast, int& nDos);
-    void Relay();
-
-    CMasternodePing& operator=(CMasternodePing from)
-    {
-        swap(*this, from);
-        return *this;
-    }
-    friend bool operator==(const CMasternodePing& a, const CMasternodePing& b)
-    {
-        return a.vin == b.vin && a.blockHash == b.blockHash;
-    }
-    friend bool operator!=(const CMasternodePing& a, const CMasternodePing& b)
-    {
-        return !(a == b);
-    }
-
-};
-
 struct masternode_info_t
 {
     masternode_info_t()
@@ -160,6 +70,8 @@ private:
     mutable CCriticalSection cs;
 
 	int MNM_REGISTERED_CHECK_SECONDS   = 60 * 60;
+
+    bool CheckOnline(const CMasternode& dst, int h, int r);
 	
 public:
     enum state {
@@ -467,6 +379,58 @@ public:
     {
         CInv inv(MSG_MASTERNODE_VERIFY, GetHash());
         RelayInv(inv);
+    }
+};
+
+class CMasterNodePing
+{
+private:
+    /* data */
+    CTxIn source;
+    CTxIn destination;
+    int height;
+    int round;
+    int type;
+    /* method */
+    uint256 GetWord() const;
+    std::string ToString() const;
+public:
+    /* data */
+    enum msgtype {
+        MASTERNODEPING_REQUEST,
+        MASTERNODEPING_ACK
+    };
+
+    /* method */
+    std::vector<unsigned char> vchSig;
+    CMasterNodePing():
+    source(),
+    destination()
+    {}
+
+    CMasterNodePing(char* buf, int len);
+    CMasterNodePing(CTxIn src, CTxIn dst, int h, int r, int t);
+    ~CMasterNodePing();
+	uint256 GetHash() const;
+	bool Sign(CKey& key);
+    bool VerifySignature();
+    bool Verify();
+	int Height(){ return height;}
+	int Round(){ return round;}
+    CTxIn Source(){ return source; }
+    CTxIn Destination(){ return destination; }
+	std::string Message();
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(source);
+		READWRITE(destination);
+        READWRITE(height);
+        READWRITE(round);
+		READWRITE(type);
+        READWRITE(vchSig);
     }
 };
 

@@ -96,6 +96,8 @@ int nMaxConnections = DEFAULT_MAX_PEER_CONNECTIONS;
 bool fAddressesInitialized = false;
 std::string strSubVersion;
 
+SOCKET g_MNSocket;
+
 vector<CNode*> vNodes;    //connections node
 CCriticalSection cs_vNodes;
 map<CInv, CDataStream> mapRelay;
@@ -1310,13 +1312,6 @@ void ThreadSocketHandler()
 }
 
 
-
-
-
-
-
-
-
 #ifdef USE_UPNP
 void ThreadMapPort()
 {
@@ -1528,6 +1523,58 @@ void static ProcessOneShot()
             AddOneShot(strDest);
     }
 }
+
+bool NetShakeHand(CAddress addrConnect, std::string msg, char * rcvbuf, int &rlen)
+{
+    const int nCountDown = 1;
+    if(rcvbuf == NULL) {
+        return false;
+    }
+    int slen = msg.length();
+    char cbuf[SHAKE_BUF_LEN];
+    memset(cbuf,0,sizeof(cbuf));
+    memcpy(cbuf, msg.c_str(), slen);
+    
+    // Connect
+    SOCKET hSocket;
+    bool proxyConnectionFailed = false;
+    if (ConnectSocket(addrConnect, hSocket, nConnectTimeout, &proxyConnectionFailed))
+    {
+        if (!IsSelectableSocket(hSocket)) {
+            LogPrintf("NetShakeHand Cannot create connection: non-selectable socket created (fd >= FD_SETSIZE ?)\n");
+            CloseSocket(hSocket);
+            return false;
+        }
+        /*send message*/
+        int nBytes = send(hSocket, cbuf, slen, MSG_NOSIGNAL | MSG_DONTWAIT);
+        if(nBytes != slen) {
+            LogPrintf("NetShakeHand send msg %d, expect %d\n", nBytes, slen);
+            CloseSocket(hSocket);
+            return false;
+        }
+        /*recive message*/
+        memset(cbuf,0,sizeof(cbuf));
+        slen = 0;
+        nBytes = 0;
+        int64_t nTimeLast = GetTime();
+        while(nBytes <= 0)
+        {
+            nBytes = recv(hSocket, cbuf, sizeof(cbuf), 0);
+            if((GetTime() - nTimeLast) >= nCountDown) {
+                CloseSocket(hSocket);
+                LogPrintf("NetShakeHand: recive msg timeout");
+                return false;
+            }
+        }
+        memcpy(rcvbuf, cbuf, nBytes);
+        rlen = nBytes;
+        CloseSocket(hSocket);
+        return true;
+    }
+    CloseSocket(hSocket);
+    return false;
+}
+
 
 void ThreadOpenConnections()
 {
@@ -1743,6 +1790,62 @@ void ThreadMnbRequestConnections()
     }
 }
 
+void ThreadMNHandShakeConnections()
+{
+	char c_buf[SHAKE_BUF_LEN];
+	while (true) {
+        struct sockaddr_storage sockaddr;
+        socklen_t len = sizeof(sockaddr);
+        SOCKET s_accept = accept(g_MNSocket, (struct sockaddr*)&sockaddr, &len);
+
+        if (s_accept == INVALID_SOCKET) {
+            int nErr = WSAGetLastError();
+            if (nErr != WSAEWOULDBLOCK)
+                LogPrintf("ThreadCheckListen::socket error accept failed: %s\n", NetworkErrorString(nErr));
+            continue;
+        }
+
+        if (!IsSelectableSocket(s_accept)) {
+            //LogPrintf("ThreadCheckListen::connection from %s dropped: non-selectable socket\n", sockaddr.ToString());
+            LogPrintf("ThreadCheckListen::connection dropped: non-selectable socket\n");
+            CloseSocket(s_accept);
+            continue;
+        }
+
+        // According to the internet TCP_NODELAY is not carried into accepted sockets
+        // on all platforms.  Set it again here just to be sure.
+        int set = 1;
+#ifdef WIN32
+        setsockopt(s_accept, IPPROTO_TCP, TCP_NODELAY, (const char*)&set, sizeof(int));
+#else
+        setsockopt(s_accept, IPPROTO_TCP, TCP_NODELAY, (void*)&set, sizeof(int));
+#endif
+        //recive message
+        memset(c_buf,0,sizeof(c_buf));
+		int nBytes = 0;
+        nBytes = recv(s_accept, c_buf, sizeof(c_buf), 0);
+        //CDataStream stream(c_buf, c_buf+nBytes, SER_NETWORK, PROTOCOL_VERSION);
+        CMasterNodePing rcvMsg = CMasterNodePing(c_buf, nBytes);
+        //stream >> rcvMsg;
+        if(rcvMsg.Verify()) {
+            /*send ack msg*/
+            CMasterNodePing ackMsg = CMasterNodePing(mnodeman.GetSelf()->vin, rcvMsg.Source(), rcvMsg.Height(), rcvMsg.Round(), CMasterNodePing::MASTERNODEPING_ACK);
+            string sendMsg = ackMsg.Message();
+			memset(c_buf,0,sizeof(c_buf));
+			memcpy(c_buf, sendMsg.c_str(), sendMsg.length());
+			int nBytes = send(s_accept, c_buf, sendMsg.length(), MSG_NOSIGNAL | MSG_DONTWAIT);
+	        if(nBytes != sendMsg.length()) {
+	            LogPrintf("ERROR: ThreadMNHandShakeConnections send ack msg %d, expect %d\n", nBytes, sendMsg.length());
+	            CloseSocket(s_accept);
+	            continue;
+	        }
+        } else {
+            /*log the error*/
+        }
+        CloseSocket(s_accept);
+    }
+}
+
 // if successful, this moves the passed grant to the constructed node
 bool OpenNetworkConnection(const CAddress& addrConnect, CSemaphoreGrant *grantOutbound, const char *pszDest, bool fOneShot)
 {
@@ -1836,12 +1939,7 @@ void ThreadMessageHandler()
     }
 }
 
-
-
-
-
-
-bool BindListenPort(const CService &addrBind, string& strError, bool fWhitelisted)
+bool GetSocket(const CService &addrBind, string& strError, SOCKET& sct)
 {
     strError = "";
     int nOne = 1;
@@ -1856,14 +1954,14 @@ bool BindListenPort(const CService &addrBind, string& strError, bool fWhiteliste
         return false;
     }
 
-    SOCKET hListenSocket = socket(((struct sockaddr*)&sockaddr)->sa_family, SOCK_STREAM, IPPROTO_TCP);
-    if (hListenSocket == INVALID_SOCKET)
+    sct = socket(((struct sockaddr*)&sockaddr)->sa_family, SOCK_STREAM, IPPROTO_TCP);
+    if (sct == INVALID_SOCKET)
     {
         strError = strprintf("Error: Couldn't open socket for incoming connections (socket returned error %s)", NetworkErrorString(WSAGetLastError()));
         LogPrintf("%s\n", strError);
         return false;
     }
-    if (!IsSelectableSocket(hListenSocket))
+    if (!IsSelectableSocket(sct))
     {
         strError = "Error: Couldn't create a listenable socket for incoming connections";
         LogPrintf("%s\n", strError);
@@ -1874,20 +1972,20 @@ bool BindListenPort(const CService &addrBind, string& strError, bool fWhiteliste
 #ifndef WIN32
 #ifdef SO_NOSIGPIPE
     // Different way of disabling SIGPIPE on BSD
-    setsockopt(hListenSocket, SOL_SOCKET, SO_NOSIGPIPE, (void*)&nOne, sizeof(int));
+    setsockopt(sct, SOL_SOCKET, SO_NOSIGPIPE, (void*)&nOne, sizeof(int));
 #endif
     // Allow binding if the port is still in TIME_WAIT state after
     // the program was closed and restarted.
-    setsockopt(hListenSocket, SOL_SOCKET, SO_REUSEADDR, (void*)&nOne, sizeof(int));
+    setsockopt(sct, SOL_SOCKET, SO_REUSEADDR, (void*)&nOne, sizeof(int));
     // Disable Nagle's algorithm
-    setsockopt(hListenSocket, IPPROTO_TCP, TCP_NODELAY, (void*)&nOne, sizeof(int));
+    setsockopt(sct, IPPROTO_TCP, TCP_NODELAY, (void*)&nOne, sizeof(int));
 #else
-    setsockopt(hListenSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&nOne, sizeof(int));
-    setsockopt(hListenSocket, IPPROTO_TCP, TCP_NODELAY, (const char*)&nOne, sizeof(int));
+    setsockopt(sct, SOL_SOCKET, SO_REUSEADDR, (const char*)&nOne, sizeof(int));
+    setsockopt(sct, IPPROTO_TCP, TCP_NODELAY, (const char*)&nOne, sizeof(int));
 #endif
 
     // Set to non-blocking, incoming connections will also inherit this
-    if (!SetSocketNonBlocking(hListenSocket, true)) {
+    if (!SetSocketNonBlocking(sct, true)) {
         strError = strprintf("BindListenPort: Setting listening socket to non-blocking failed, error %s\n", NetworkErrorString(WSAGetLastError()));
         LogPrintf("%s\n", strError);
         return false;
@@ -1898,18 +1996,18 @@ bool BindListenPort(const CService &addrBind, string& strError, bool fWhiteliste
     if (addrBind.IsIPv6()) {
 #ifdef IPV6_V6ONLY
 #ifdef WIN32
-        setsockopt(hListenSocket, IPPROTO_IPV6, IPV6_V6ONLY, (const char*)&nOne, sizeof(int));
+        setsockopt(sct, IPPROTO_IPV6, IPV6_V6ONLY, (const char*)&nOne, sizeof(int));
 #else
-        setsockopt(hListenSocket, IPPROTO_IPV6, IPV6_V6ONLY, (void*)&nOne, sizeof(int));
+        setsockopt(sct, IPPROTO_IPV6, IPV6_V6ONLY, (void*)&nOne, sizeof(int));
 #endif
 #endif
 #ifdef WIN32
         int nProtLevel = PROTECTION_LEVEL_UNRESTRICTED;
-        setsockopt(hListenSocket, IPPROTO_IPV6, IPV6_PROTECTION_LEVEL, (const char*)&nProtLevel, sizeof(int));
+        setsockopt(sct, IPPROTO_IPV6, IPV6_PROTECTION_LEVEL, (const char*)&nProtLevel, sizeof(int));
 #endif
     }
 
-    if (::bind(hListenSocket, (struct sockaddr*)&sockaddr, len) == SOCKET_ERROR)
+    if (::bind(sct, (struct sockaddr*)&sockaddr, len) == SOCKET_ERROR)
     {
         int nErr = WSAGetLastError();
         if (nErr == WSAEADDRINUSE)
@@ -1917,17 +2015,27 @@ bool BindListenPort(const CService &addrBind, string& strError, bool fWhiteliste
         else
             strError = strprintf(_("Unable to bind to %s on this computer (bind returned error %s)"), addrBind.ToString(), NetworkErrorString(nErr));
         LogPrintf("%s\n", strError);
-        CloseSocket(hListenSocket);
+        CloseSocket(sct);
         return false;
     }
     LogPrintf("Bound to %s\n", addrBind.ToString());
 
     // Listen for incoming connections
-    if (listen(hListenSocket, SOMAXCONN) == SOCKET_ERROR)
+    if (listen(sct, SOMAXCONN) == SOCKET_ERROR)
     {
         strError = strprintf(_("Error: Listening for incoming connections failed (listen returned error %s)"), NetworkErrorString(WSAGetLastError()));
         LogPrintf("%s\n", strError);
-        CloseSocket(hListenSocket);
+        CloseSocket(sct);
+        return false;
+    }
+    return true;
+}
+
+bool BindListenPort(const CService &addrBind, string& strError, bool fWhitelisted)
+{
+    SOCKET hListenSocket;
+
+    if(!GetSocket(addrBind, strError, hListenSocket)) {
         return false;
     }
 
@@ -1937,6 +2045,19 @@ bool BindListenPort(const CService &addrBind, string& strError, bool fWhiteliste
         AddLocal(addrBind, LOCAL_BIND);
 
     return true;
+}
+
+bool BindMNCheckListenPort()
+{
+	string strError = "";
+	CService mn = CService(GetArg("-externalip", ""), 9887);
+	if (!mn.IsValid()) {
+		strError = strprintf(_("Error: Listening for masternode check port, Service(%s) invalid"), GetArg("-externalip", ""));
+        LogPrintf("%s\n", strError);
+		return false;
+	}
+
+	return GetSocket(mn, strError, g_MNSocket);
 }
 
 void static Discover(boost::thread_group& threadGroup)
@@ -2052,8 +2173,10 @@ void StartNode(boost::thread_group& threadGroup, CScheduler& scheduler)
     // Initiate outbound connections
     threadGroup.create_thread(boost::bind(&TraceThread<void (*)()>, "opencon", &ThreadOpenConnections));
 
-    // Initiate masternode connections
-    threadGroup.create_thread(boost::bind(&TraceThread<void (*)()>, "mnbcon", &ThreadMnbRequestConnections));
+    // Initiate masternode shakehand connections
+    if(fMasterNode) {
+		threadGroup.create_thread(boost::bind(&TraceThread<void (*)()>, "mncheck", &ThreadMNHandShakeConnections));
+	}
 
     // Process messages
     threadGroup.create_thread(boost::bind(&TraceThread<void (*)()>, "msghand", &ThreadMessageHandler));

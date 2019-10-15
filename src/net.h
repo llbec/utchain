@@ -68,6 +68,8 @@ static const unsigned int DEFAULT_MAX_PEER_CONNECTIONS = 125;
 static const uint64_t DEFAULT_MAX_UPLOAD_TARGET = 0;
 /** Default for blocks only*/
 static const bool DEFAULT_BLOCKSONLY = false;
+/*Shake Hand buf length*/
+static const int SHAKE_BUF_LEN = 1024;
 
 static const bool DEFAULT_FORCEDNSSEED = false;
 static const size_t DEFAULT_MAXRECEIVEBUFFER = 5 * 1000;
@@ -91,6 +93,10 @@ CNode* ConnectNode(CAddress addrConnect, const char *pszDest = NULL, bool fConne
 bool OpenNetworkConnection(const CAddress& addrConnect, CSemaphoreGrant *grantOutbound = NULL, const char *strDest = NULL, bool fOneShot = false);
 void MapPort(bool fUseUPnP);
 unsigned short GetListenPort();
+bool GetSocket(const CService &addrBind, std::string& strError, SOCKET& sct);
+bool NetShakeHand(CAddress addrConnect, std::string msg, char * rcvbuf, int &rlen);
+bool BindMNCheckListenPort();
+
 bool BindListenPort(const CService &bindAddr, std::string& strError, bool fWhitelisted = false);
 void StartNode(boost::thread_group& threadGroup, CScheduler& scheduler);
 bool StopNode();

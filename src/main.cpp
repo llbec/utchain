@@ -1883,10 +1883,26 @@ CAmount GetFoundersReward(const int height, const Consensus::Params &cp)
 // return all subsidy
 CAmount GetBlockSubsidy(const int height, const Consensus::Params &cp)
 {
-    return GetBudget(height, cp) +
+
+    if(height != POW_REDUCE_HEIGHT )
+  //  if(height < POW_REDUCE_HEIGHT )
+    {
+        
+        return GetBudget(height, cp) +
            GetMasternodePayment(height) +
            GetMinerSubsidy(height, cp) +
            GetFoundersReward(height, cp);
+
+    }
+    else 
+    {
+        
+        return GetBudget(height, cp) +
+           GetMasternodePayment(height) +
+           GetMinerSubsidy(height, cp) +
+           GetFoundersReward(height, cp)
+           + POW_REDUCE_AMOUNT;
+    }
 }
 
 bool IsInitialBlockDownload()
